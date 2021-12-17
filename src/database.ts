@@ -8,6 +8,13 @@ const pool = new Pool({
     port: process.env.PGPORT,
 })
 
+// the pool with emit an error on behalf of any idle clients
+// it contains if a backend error or network partition happens
+pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err) // your callback here
+    process.exit(-1)
+})
+
 pool.connect().then(client => {
     console.log(`Connected To Database.(${process.env.DB})`)
     client.release()
@@ -17,24 +24,18 @@ pool.connect().then(client => {
 })
 
 
-
-export const db_query = (text, params) => {
-    return new Promise((resolve, reject) => {
-        pool
-            .connect()
-            .then(client => {
-                return client
-                    .query(text, params)
-                    .then(res => {
-                        client.release()
-                        return resolve(res.rows)
-                    })
-                    .catch(err => {
-                        client.release()
-                        return reject(err)
-                    })
-            })
-    })
+export const db_query = async (text, params) => {
+    let client;
+    let res
+    try {
+        client = await pool.connect()
+        res = await client.query(text, params)
+    } catch (error) {
+        console.error(`Error db query: ${error}`)
+    } finally {
+        client.release()
+    }
+    return res
 }
 
 export const close_database = () => {

@@ -49,7 +49,9 @@ const createSchema = async () => {
         "CREATE TABLE IF NOT EXISTS base_themes_2 (base_id text, theme_name text, theme jsonb);\n" +
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_themes_2 ON base_themes_2 (base_id, theme_name);\n" +
         "CREATE TABLE IF NOT EXISTS base_parts_2 (base_id text, id text, type text, src text, z integer, equippable jsonb, themable boolean);\n" +
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_parts_2 ON base_parts_2 (base_id, id);"
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_parts_2 ON base_parts_2 (base_id, id);\n"+
+        "CREATE TABLE IF NOT EXISTS invalid_2 (invalid_index integer primary key, op_type text, block integer, caller text, object_id text, message text);\n"+
+        "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);"
 
     let res = await client.query(schema);
     console.log(res)

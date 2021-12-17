@@ -1,12 +1,12 @@
 {
   "name": "rmrk-listener",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "A Template on which to Build RMRK2 WebApps",
+  "main": "src/index.js",
   "scripts": {
     "start-db" : "docker-compose up",
-    "create-db": "npx ts-node ./createdb.ts",
-    "start": "npx ts-node ./index.ts",
+    "create-db": "npx ts-node ./src/createdb.ts",
+    "start": "npx ts-node ./src/index.ts",
     "fetch": "rmrk-tools-fetch",
     "consolidate": "rmrk-tools-consolidate"
   },
