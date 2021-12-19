@@ -1,12 +1,15 @@
 const { Pool, Client } = require('pg')
 
-const pool = new Pool({
-    user: process.env.PGUSER,
-    host: process.env.PGHOST,
-    database: process.env.DB,
-    password: process.env.PGPASSWORD,
-    port: process.env.PGPORT,
-})
+export const getDbString = () => {
+    return {
+        user: process.env.PGUSER,
+            host: process.env.PGHOST,
+        database: process.env.DB,
+        password: process.env.PGPASSWORD,
+        port: process.env.PGPORT,
+    }
+}
+const pool = new Pool(getDbString())
 
 // the pool with emit an error on behalf of any idle clients
 // it contains if a backend error or network partition happens

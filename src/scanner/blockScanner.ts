@@ -1,7 +1,7 @@
 import {getConnection} from "./connection";
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { getLatestFinalizedBlock } from 'rmrk-tools';
-import { fetchAndConsolidate } from '../api'
+import { fetchAndConsolidate } from '../api/api'
 import { addNft } from "../store/nft"
 import { addCollection } from "../store/collection"
 import {addBase } from "../store/base"

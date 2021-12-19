@@ -31,6 +31,38 @@ const createSchema = async () => {
         port: process.env.PGPORT,
     })
     await client.connect()
+
+    const notify = "CREATE OR REPLACE FUNCTION notify()\n" +
+        "    RETURNS TRIGGER AS $$\n" +
+        "DECLARE\n" +
+        "    resVal text;\n" +
+        "BEGIN\n" +
+        "   IF (TG_OP = 'INSERT') THEN \n" +
+        "      resVal := json_build_object('tbl', TG_TABLE_NAME::text, 'row', row_to_json(NEW.*));\n" +
+        "      PERFORM pg_notify('insert_notify', resVal::text);\n" +
+        "      RETURN NEW;\n" +
+        "    END IF;" +
+        "    RETURN NULL;" +
+        "END;\n" +
+        "$$ LANGUAGE plpgsql;\n" +
+
+    "CREATE OR REPLACE TRIGGER nft_changes_trigger AFTER INSERT ON nft_changes_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER nft_children_trigger AFTER INSERT ON nft_children_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER nft_reactions_trigger AFTER INSERT ON nft_reactions_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER nft_resources_trigger AFTER INSERT ON nft_resources_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER nft_trigger AFTER INSERT ON nfts_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+
+    "CREATE OR REPLACE TRIGGER base_trigger AFTER INSERT ON bases_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER base_part_trigger AFTER INSERT ON base_parts_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER base_theme_trigger AFTER INSERT ON base_themes_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER base_change_trigger AFTER INSERT ON base_changes_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+
+    "CREATE OR REPLACE TRIGGER collection_trigger AFTER INSERT ON collections_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER collection_change_trigger AFTER INSERT ON collection_changes_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+
+    "CREATE OR REPLACE TRIGGER invalid_trigger AFTER INSERT ON invalid_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n" +
+    "CREATE OR REPLACE TRIGGER lastblock_trigger AFTER INSERT ON lastblock_2 FOR EACH ROW EXECUTE PROCEDURE notify();\n";
+
     const schema = "CREATE TABLE IF NOT EXISTS nft_changes_2 (nft_id text, change_index integer, field text, old text, new text, caller text, block integer, opType text);\n" +
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_nft_id_change_2 ON nft_changes_2 (nft_id, change_index);\n" +
         "CREATE TABLE IF NOT EXISTS nft_reactions_2 (nft_id text, reaction text, wallets jsonb);\n" +
@@ -51,9 +83,11 @@ const createSchema = async () => {
         "CREATE TABLE IF NOT EXISTS base_parts_2 (base_id text, id text, type text, src text, z integer, equippable jsonb, themable boolean);\n" +
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_parts_2 ON base_parts_2 (base_id, id);\n"+
         "CREATE TABLE IF NOT EXISTS invalid_2 (invalid_index integer primary key, op_type text, block integer, caller text, object_id text, message text);\n"+
-        "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);"
+        "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);";
 
     let res = await client.query(schema);
+    console.log(res)
+    res = await client.query(notify);
     console.log(res)
     await client.end()
 };

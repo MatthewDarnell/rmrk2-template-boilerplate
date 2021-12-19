@@ -1,5 +1,6 @@
 
 import { db_query } from "../database";
+import { emitSubscriptionEvent } from "../api/event";
 
 export const addBase = async (bases, startBlock) => {
     const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES ";
