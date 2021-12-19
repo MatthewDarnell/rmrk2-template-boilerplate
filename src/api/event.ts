@@ -1,5 +1,6 @@
 
 import { io } from './socket'
+import {load} from "dotenv";
 
 const defaultApi =  '["new_block", "new_base_change", "new_base_part", "new_base_theme", ' +
     '"new_base", "new_collection_change", "new_collection", "new_invalid", "new_nft_change", ' +
@@ -27,7 +28,7 @@ export const getApiFromTableName = tbl => {
 
 const verifySubscription = subscription => {
     try {
-        let validSubscriptions = JSON.parse(process.env.APIEVENTS) || JSON.parse(defaultApi)
+        let validSubscriptions = process.env.APIEVENTS.split(', ') || JSON.parse(defaultApi)
         return validSubscriptions.filter(x => x === subscription).length > 0
     } catch(error) {
         console.error(`Could not find valid json env var APIEVENTS, falling back to default Api`)
