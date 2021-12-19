@@ -1,6 +1,5 @@
 
 import { io } from './socket'
-import {load} from "dotenv";
 
 const defaultApi =  '["new_block", "new_base_change", "new_base_part", "new_base_theme", ' +
     '"new_base", "new_collection_change", "new_collection", "new_invalid", "new_nft_change", ' +
