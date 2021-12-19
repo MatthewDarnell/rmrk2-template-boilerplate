@@ -13,7 +13,7 @@ export const startBlockScanner = async () => {
         let finalizedBlock = await getLatestFinalizedBlock(conn)
         if(finalizedBlock > block) {
             console.log(`Scanning ${finalizedBlock-block} blocks. (${block}  --->  ${finalizedBlock})`)
-            let { bases, invalid, nfts, collections } = await fetchAndConsolidate(conn, 8788686-2, 8788686+2);
+            let { bases, invalid, nfts, collections } = await fetchAndConsolidate(conn, block, finalizedBlock);
             await addNft(nfts)
             await addBase(bases, block)
             await addInvalid(invalid, block)
