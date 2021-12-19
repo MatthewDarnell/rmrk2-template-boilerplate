@@ -1,9 +1,9 @@
 
-import { db_query } from "../database";
+import {db_get, db_query} from "../database";
 
 export const getLastBlockScanned = async () => {
     const query = "SELECT lastblock FROM lastblock_2 ORDER BY lastblock DESC LIMIT 1"
-    return (await db_query(query, "")).rows[0].lastblock
+    return (await db_get(query, "")).lastblock
 
 }
 

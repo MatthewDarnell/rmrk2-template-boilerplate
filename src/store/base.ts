@@ -1,8 +1,6 @@
 
 import { db_query } from "../database";
 
-import { addCollectionChanges } from "./collection_changes";
-
 export const addBase = async (bases, startBlock) => {
     const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES ";
     let insertionValues = ""
@@ -37,6 +35,7 @@ export const addBase = async (bases, startBlock) => {
         }
     }))
     if(totalBases > 0) {
+        console.log(`Logging ${totalBases} Bases`)
         insertionValues = insertionValues.slice(0, insertionValues.length-2)
         insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type, issuer = excluded.issuer, updatedAtBlock = excluded.updatedAtBlock;`
         return await db_query(insert + insertionValues, "")
@@ -44,7 +43,7 @@ export const addBase = async (bases, startBlock) => {
     return 0
 }
 
-export const addBaseChanges = async base => {
+const addBaseChanges = async base => {
     console.log('Adding Base Changes')
     const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES ";
     let insertionValues = ""
@@ -74,7 +73,7 @@ export const addBaseChanges = async base => {
     return 0
 }
 
-export const addBaseParts = async base => {
+const addBaseParts = async base => {
     console.log('Adding Base Parts')
 
     const insert = "INSERT INTO base_parts_2 (base_id, id, type, src, z, equippable, themable) VALUES ";

@@ -38,6 +38,20 @@ export const db_query = async (text, params) => {
     return res
 }
 
+export const db_get = async (text, params) => {
+    let client;
+    let res
+    try {
+        client = await pool.connect()
+        res = await client.query(text, params)
+    } catch (error) {
+        console.error(`Error db query: ${error}`)
+    } finally {
+        client.release()
+    }
+    return res.rows[0]
+}
+
 export const close_database = () => {
     console.log(`Shutting Down Database.(${process.env.DB})`)
     pool.end();
