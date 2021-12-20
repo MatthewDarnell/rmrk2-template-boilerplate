@@ -48,7 +48,6 @@ export const addCollection = async (collections, startBlock) => {
         }
     }))
     if(totalCollections > 0) {
-        console.log(`Logging ${totalCollections} Collections`)
         insertionValues = insertionValues.slice(0, insertionValues.length-2)
         insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, max = excluded.max, issuer = excluded.issuer, symbol = excluded.symbol, metadata = excluded.metadata, updatedAtBlock = excluded.updatedAtBlock;`
         return await db_query(insert + insertionValues, "")

@@ -1,13 +1,11 @@
 import {getConnection} from "./connection";
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { getLatestFinalizedBlock } from 'rmrk-tools';
-import { fetchAndConsolidate } from '../api/api'
+import { fetch, consolidate } from '../api/api'
 import { addNft } from "../store/nft"
 import { addCollection } from "../store/collection"
 import {addBase } from "../store/base"
 import { addInvalid} from "../store/invalid"
-
-
 
 export const startBlockScanner = async (conn) => {
     try {
@@ -15,12 +13,14 @@ export const startBlockScanner = async (conn) => {
         let finalizedBlock = await getLatestFinalizedBlock(conn)
         if(finalizedBlock > block) {
             console.log(`Scanning ${finalizedBlock-block} blocks. (${block}  --->  ${finalizedBlock})`)
-            let { bases, invalid, nfts, collections } = await fetchAndConsolidate(conn, block, finalizedBlock);
+            let remarks = await fetch(conn, block, finalizedBlock)
+            remarks = [...remarks]
+            await setLastBlockScanned(finalizedBlock)
+            let { bases, invalid, nfts, collections } = await consolidate(conn, remarks);
             await addNft(nfts)
             await addBase(bases, block)
             await addInvalid(invalid, block)
             await addCollection(collections, block)
-            await setLastBlockScanned(finalizedBlock)
         }
     } catch(error) {
         console.error(`Error in startBlockScanner - ${error}`)

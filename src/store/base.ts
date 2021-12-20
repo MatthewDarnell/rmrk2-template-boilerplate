@@ -34,7 +34,7 @@ export const addBase = async (bases, startBlock) => {
     let keys = Object.keys(JSON.parse(bases))
     let arrayBases = keys.map(name => JSON.parse(bases)[name])
     let totalBases = 0
-
+console.log(`Searching ${arrayBases.length} Bases`)
     await Promise.all(arrayBases.map(async (base, index) => {
         let maxBaseBlock = 0
         let {
@@ -61,7 +61,6 @@ export const addBase = async (bases, startBlock) => {
         }
     }))
     if(totalBases > 0) {
-        console.log(`Logging ${totalBases} Bases`)
         insertionValues = insertionValues.slice(0, insertionValues.length-2)
         insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type, issuer = excluded.issuer, updatedAtBlock = excluded.updatedAtBlock;`
         return await db_query(insert + insertionValues, "")
@@ -69,7 +68,6 @@ export const addBase = async (bases, startBlock) => {
     return 0
 }
 const addBaseChanges = async base => {
-    console.log('Adding Base Changes')
     const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES ";
     let insertionValues = ""
 
@@ -98,8 +96,6 @@ const addBaseChanges = async base => {
     return 0
 }
 const addBaseParts = async base => {
-    console.log('Adding Base Parts')
-
     const insert = "INSERT INTO base_parts_2 (base_id, id, type, src, z, equippable, themable) VALUES ";
     let insertionValues = ""
 

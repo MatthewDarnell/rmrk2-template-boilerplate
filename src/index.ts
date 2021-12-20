@@ -12,6 +12,7 @@ db_get(`SELECT NOW()`, "").then(async time => {
         console.log(`Attempting To Connect On Url (${process.env.WSURL})`)
         startSocketApi()
         await apiListenerConnect()
+        //TODO: loop until get Connection
         let conn = await getConnection(process.env.WSURL)
         await startBlockScanner(conn)
     } catch(error) {
