@@ -1,7 +1,7 @@
 require('dotenv').config()
 import {db_get} from "./database";
 import {startBlockScanner} from "./scanner/blockScanner";
-import { startSocketApi } from "./api/event"
+import { startSocketApi } from "./api/socket"
 import { apiListenerConnect } from "./api/listener";
 
 db_get(`SELECT NOW()`, "").then(async time => {

@@ -1,7 +1,7 @@
 import createSubscriber from "pg-listen"
 import { getDbString } from "../database"
 
-import {emitSubscriptionEvent, getApiFromTableName} from "./event"
+import {emitSubscriptionEvent, getApiFromTableName} from "./socket"
 
 
 // Accepts the same connection config object that the "pg" package would take

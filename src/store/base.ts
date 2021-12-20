@@ -1,6 +1,10 @@
 
-import { db_query } from "../database";
-import { emitSubscriptionEvent } from "../api/event";
+import { db_get, db_query } from "../database";
+
+export const getBaseById = async id => {
+    const query = `SELECT * FROM bases_2 WHERE id='${id}'`
+    return (await db_get(query, ""))
+}
 
 export const addBase = async (bases, startBlock) => {
     const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES ";
@@ -43,7 +47,6 @@ export const addBase = async (bases, startBlock) => {
     }
     return 0
 }
-
 const addBaseChanges = async base => {
     console.log('Adding Base Changes')
     const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES ";
@@ -73,7 +76,6 @@ const addBaseChanges = async base => {
     }
     return 0
 }
-
 const addBaseParts = async base => {
     console.log('Adding Base Parts')
 

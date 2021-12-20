@@ -1,5 +1,12 @@
 
-import { db_query } from "../database";
+import {db_get, db_query} from "../database";
+
+
+export const getCollectionById = async id => {
+    const query = `SELECT * FROM collections_2 WHERE id='${id}'`
+    return (await db_get(query, ""))
+}
+
 
 export const addCollection = async (collections, startBlock) => {
     const insert = "INSERT INTO collections_2 (id, block, max, issuer, symbol, metadata, updatedAtBlock) VALUES ";
