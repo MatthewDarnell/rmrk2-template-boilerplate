@@ -1,5 +1,20 @@
 
-import { db_query } from "../database";
+import {db_get, db_query} from "../database";
+
+export const getInvalids = async () => {
+    const query = `SELECT * FROM invalid_2`
+    return (await db_get(query, ""))
+}
+
+export const getInvalidsByOpType = async op => {
+    const query = `SELECT * FROM invalid_2 WHERE op_type='${op}'`
+    return (await db_get(query, ""))
+}
+
+export const getInvalidsByCaller = async caller => {
+    const query = `SELECT * FROM invalid_2 WHERE caller='${caller}'`
+    return (await db_get(query, ""))
+}
 
 export const addInvalid = async (invalidArray, startBlock) => {
     try {
@@ -25,7 +40,6 @@ export const addInvalid = async (invalidArray, startBlock) => {
             }
         }
         if(totalInvalids > 0) {
-            console.log(`Logging ${totalInvalids} Invalids`)
             insertionValues = insertionValues.slice(0, insertionValues.length-2)
             insertionValues += ` ON CONFLICT (invalid_index) DO UPDATE SET op_type = excluded.op_type, block = excluded.block, caller = excluded.caller, object_id = excluded.object_id, message = excluded.message;`
             return await db_query(insert + insertionValues, "")

@@ -4,6 +4,7 @@ import { createServer } from "http";
 import { setupLastBlockRoute } from "./routes/last_block";
 import { setupBaseRoutes } from "./routes/base";
 import { setupCollectionRoutes } from "./routes/collection";
+import { setupInvalidRoute } from "./routes/invalid";
 
 const express = require('express')
 const app = express()
@@ -19,3 +20,4 @@ export const getServer = () => httpServer
 setupLastBlockRoute(app)
 setupBaseRoutes(app)
 setupCollectionRoutes(app)
+setupInvalidRoute(app)

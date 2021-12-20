@@ -52,7 +52,7 @@ export const db_get = async (text, params) => {
     } finally {
         client.release()
     }
-    return res.rows[0]
+    return res.rows
 }
 
 export const close_database = () => {

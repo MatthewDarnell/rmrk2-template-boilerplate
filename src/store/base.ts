@@ -1,10 +1,31 @@
 
 import { db_get, db_query } from "../database";
 
+export const getBases = async () => {
+  const query = "SELECT * FROM bases_2"
+  return await db_get(query, "")
+}
+
 export const getBaseById = async id => {
     const query = `SELECT * FROM bases_2 WHERE id='${id}'`
     return (await db_get(query, ""))
 }
+
+export const getBaseChangesById = async id => {
+    const query = `SELECT * FROM base_changes_2 WHERE base_id='${id}'`
+    return (await db_get(query, ""))
+}
+
+export const getBasePartsById = async id => {
+    const query = `SELECT * FROM base_parts_2 WHERE base_id='${id}'`
+    return (await db_get(query, ""))
+}
+
+export const getBaseThemesById = async id => {
+    const query = `SELECT * FROM base_themes_2 WHERE base_id='${id}'`
+    return (await db_get(query, ""))
+}
+
 
 export const addBase = async (bases, startBlock) => {
     const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES ";
