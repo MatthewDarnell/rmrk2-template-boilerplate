@@ -6,9 +6,11 @@ import { addNft } from "../store/nft"
 import { addCollection } from "../store/collection"
 import {addBase } from "../store/base"
 import { addInvalid} from "../store/invalid"
-export const startBlockScanner = async () => {
+
+
+
+export const startBlockScanner = async (conn) => {
     try {
-        let conn = await getConnection(process.env.WSURL)
         let block = await getLastBlockScanned()
         let finalizedBlock = await getLatestFinalizedBlock(conn)
         if(finalizedBlock > block) {
@@ -23,5 +25,7 @@ export const startBlockScanner = async () => {
     } catch(error) {
         console.error(`Error in startBlockScanner - ${error}`)
     }
-    return setTimeout(startBlockScanner, parseInt(process.env.BLOCKSCANNERINTERVAL))
+    return setTimeout(() => {
+        startBlockScanner(conn)
+    }, parseInt(process.env.BLOCKSCANNERINTERVAL) || 60000)
 }
