@@ -1,5 +1,63 @@
 
-import { db_query } from "../database";
+import {db_get, db_query} from "../database";
+
+
+export const getNftsByCollection = async collectionId => {
+    const query = `SELECT * FROM nfts_2 WHERE collection='${collectionId}'`
+    return (await db_get(query, ""))
+}
+
+export const getNftsOwnedBy = async address => {
+    const query = `SELECT * FROM nfts_2 WHERE owner='${address}'`
+    return (await db_get(query, ""))
+}
+
+export const getNftsOwnedByInCollection = async (address, collectionId) => {
+    const query = `SELECT * FROM nfts_2 WHERE owner='${address}' AND collection='${collectionId}'`
+    return (await db_get(query, ""))
+}
+
+export const getNft = async nftId => {
+    const query = `SELECT * FROM nfts_2 WHERE id='${nftId}' LIMIT 1`
+    let nft = await db_get(query, "")
+    if(nft.length > 0) {
+        return nft[0]
+    } else {
+        throw new Error('nft not found')
+    }
+}
+
+export const getNftChildrenByNftId = async nftId => {
+    const query = `SELECT nfts_2.collection, nft_children_2.id, ` +
+       ` nft_children_2.pending, nft_children_2.equipped FROM nft_children_2` +
+        ` INNER JOIN nfts_2 ON nfts_2.id=nft_children_2.nft_id` +
+        ` WHERE nfts_2.id='${nftId}'`
+    return (await db_get(query, ""))
+}
+
+export const getNftChangesByNftId = async nftId => {
+    const query = `SELECT nfts_2.collection, nft_changes_2.*` +
+        ` FROM nft_changes_2` +
+        ` INNER JOIN nfts_2 ON nfts_2.id=nft_changes_2.nft_id` +
+        ` WHERE nfts_2.id='${nftId}'`
+    return (await db_get(query, ""))
+}
+
+export const getNftResourcesByNftId = async nftId => {
+    const query = `SELECT nfts_2.collection, nft_resources_2.*` +
+        ` FROM nft_resources_2` +
+        ` INNER JOIN nfts_2 ON nfts_2.id=nft_resources_2.nft_id` +
+        ` WHERE nfts_2.id='${nftId}'`
+    return (await db_get(query, ""))
+}
+
+export const getNftReactionsByNftId = async nftId => {
+    const query = `SELECT nfts_2.collection, nft_reactions_2.*` +
+        ` FROM nft_reactions_2` +
+        ` INNER JOIN nfts_2 ON nfts_2.id=nft_reactions_2.nft_id` +
+        ` WHERE nfts_2.id='${nftId}'`
+    return (await db_get(query, ""))
+}
 
 export const addNft = async (nftMap) => {
     const insert = "INSERT INTO nfts_2 (id, block, collection, symbol, priority, transferable, sn, metadata, owner, rootowner, forsale, burned, properties, pending, updatedAtBlock) VALUES ";
@@ -13,7 +71,6 @@ export const addNft = async (nftMap) => {
         if(!nft.hasOwnProperty('resources')) {
             continue
         }
-        totalNfts++
         nft.resources.map(resource => {
             let {
                 block,
@@ -41,14 +98,13 @@ export const addNft = async (nftMap) => {
                     }
                 })
             }
-
+            totalNfts++
             insertionValues += `('${id}', ${block}, '${collection}', '${symbol}', '${JSON.stringify(priority)}', ${transferable}, '${sn}', '${metadata}', '${owner}', '${rootowner}', ${forsale}, '${burned}', '${JSON.stringify(properties)}', ${pending}, ${maxBlock}), `
         })
     }
     if(totalNfts > 0) {
         insertionValues = insertionValues.slice(0, insertionValues.length-2)
         insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, collection = excluded.collection, symbol = excluded.symbol, priority = excluded.priority, transferable = excluded.transferable, sn = excluded.sn, metadata = excluded.metadata, owner = excluded.owner, rootowner = excluded.rootowner, forsale = excluded.forsale, burned = excluded.burned, properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;`
-        console.log(`Inserting Nfts: ${insert+insertionValues}`)
         await db_query(insert + insertionValues, "")
     }
     await addNftChanges(nftArray)
@@ -126,6 +182,7 @@ const addNftChildren = async (nftArray) => {
             query = "DELETE FROM nft_children_2; " + query
             query = query.slice(0, query.length-2)
             query += ` ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;`
+            console.log(query)
             return await db_query(query, "")
         }
         return 0

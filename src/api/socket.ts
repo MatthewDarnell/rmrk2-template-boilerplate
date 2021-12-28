@@ -49,19 +49,24 @@ export const startSocketApi = () => {
     io.sockets.on('connection', socket => {
         console.log('got connection')
         socket.on('api', () => {
-            socket.emit('api', process.env.APIEVENTS || defaultApi)
+            socket.emit('api', JSON.stringify(process.env.APIEVENTS.split(', ')) || defaultApi)
         })
         socket.on('subscribe', subscription => {
-            if(!verifySubscription(subscription)) {
-                return socket.emit('subscribe', { error: 'Invalid Api Subscription'})
+            if (!verifySubscription(subscription)) {
+                return socket.emit('subscribe', {error: 'Invalid Api Subscription'})
             }
-            socket.emit('subscribe', { message: `Joining Room ${subscription}` })
+            socket.emit('subscribe', {message: `Joining Room ${subscription}`})
             socket.join(subscription)
         })
+    })
+
+    io.sockets.on('disconnect', () => {
+        console.log('disconnected')
+        io.sockets.disconnectSockets(true);
     })
 }
 
 export const emitSubscriptionEvent = (event, data) => {
     console.log(`emitting event ${event}`)
-    io.sockets.in(event).emit(event, data)
+    io.sockets.in(event).emit('event', {event, data})
 }

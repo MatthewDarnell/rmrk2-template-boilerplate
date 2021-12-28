@@ -4,7 +4,11 @@ import {db_get, db_query} from "../database";
 export const getLastBlockScanned = async () => {
     try {
         const query = "SELECT lastblock FROM lastblock_2 ORDER BY lastblock DESC LIMIT 1"
-        return (await db_get(query, ""))[0].lastblock
+        let result = (await db_get(query, ""))
+        if(result.length < 1) {
+            result = [ { lastblock: 0 } ]
+        }
+        return result[0].lastblock
     } catch(error) {
         console.error(`Error Getting Last Block Scanned ${error}`)
         throw new Error(error)

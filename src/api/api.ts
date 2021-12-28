@@ -15,11 +15,11 @@ export const fetch = async (api, from, to) => {
     }
 }
 
-export const consolidate = async (api, r) => {
+export const consolidate = async (api, from, r) => {
     try {
         let remarks = [...r]
         if(remarks.length > 0) {
-            await addRemarkArray(remarks)
+            await addRemarkArray(remarks.filter(remark => remark.block > from))
         }
         let storedRemarks = (await getRemarks())
         const consolidator = new Consolidator();

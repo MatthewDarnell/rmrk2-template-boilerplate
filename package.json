@@ -4,7 +4,7 @@
   "description": "A Template on which to Build RMRK2 WebApps",
   "main": "src/index.js",
   "scripts": {
-    "start-db" : "docker-compose up",
+    "start-db": "docker-compose up",
     "create-db": "npx ts-node ./src/createdb.ts",
     "start": "npx ts-node ./src/index.ts",
     "fetch": "rmrk-tools-fetch",
@@ -13,10 +13,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.17.2",
     "@polkadot/api": "^6.12.1",
     "@types/node": "^16.9.6",
+    "cors": "^2.8.5",
     "dotenv": "^10.0.0",
+    "express": "^4.17.2",
     "nanoid": "^3.1.25",
     "p-limit": "^3.1.0",
     "pg": "^8.7.1",

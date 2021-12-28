@@ -29,7 +29,7 @@ export const addRemarkArray = async remarks => {
     for(const remark of remarks) {
         let extra_ex = 'NULL'
         if(remark.extra_ex) {
-            extra_ex = `'${remark.extra_ex}'`
+            extra_ex = `'${JSON.stringify(remark.extra_ex)}'`
         }
         query += `(${remark.block}, '${remark.caller}', '${remark.interaction_type}', '${remark.version}', '${remark.remark}', ${extra_ex}), \n`
     }

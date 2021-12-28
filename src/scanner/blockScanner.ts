@@ -1,4 +1,3 @@
-import {getConnection} from "./connection";
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { getLatestFinalizedBlock } from 'rmrk-tools';
 import { fetch, consolidate } from '../api/api'
@@ -7,7 +6,7 @@ import { addCollection } from "../store/collection"
 import {addBase } from "../store/base"
 import { addInvalid} from "../store/invalid"
 
-export const startBlockScanner = async (conn) => {
+export const startBlockScanner = async conn => {
     try {
         let block = await getLastBlockScanned()
         let finalizedBlock = await getLatestFinalizedBlock(conn)
@@ -16,7 +15,7 @@ export const startBlockScanner = async (conn) => {
             let remarks = await fetch(conn, block, finalizedBlock)
             remarks = [...remarks]
             await setLastBlockScanned(finalizedBlock)
-            let { bases, invalid, nfts, collections } = await consolidate(conn, remarks);
+            let { bases, invalid, nfts, collections } = await consolidate(conn, block, remarks);
             await addNft(nfts)
             await addBase(bases, block)
             await addInvalid(invalid, block)

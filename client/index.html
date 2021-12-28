@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Rmrk2-Listener</title>
+</head>
+<script src="https://cdn.socket.io/4.4.0/socket.io.min.js" integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="static/css/rmrk-listener-client.css">
+<script src="static/js/helper-functions.js"></script>
+<script src="static/js/rmrk-listener-client.js"></script>
+<body>
+
+    <div>
+        <label for="httpServerInput">Http Server</label><input id="httpServerInput" type="text" placeholder="http://127.0.0.1:3000">
+        <label for="wsServerInput">Ws Server</label><input id="wsServerInput" type="text" placeholder="http://127.0.0.1:3000"> <button onclick=initSocket()> Set Ws Url</button>
+        <span id="connectionStatusSpan">Socket Status: Not Connected</span><br/>
+
+        <div>
+            <span>Http Apis:</span>
+            <input id="httpApiInput" placeholder="/path" type="text">
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('httpNftDropdown')" class="dropbtn">Nft Api</button>
+                <div id="httpNftDropdown" class="dropdown-content">
+                    <button onclick="httpRequest('get_nft_by_id', true)">Get Nft By Id (/id)</button>
+                    <button onclick="httpRequest('get_nfts_by_collection', true)">Get Nfts In Collection (/collectionId)</button>
+                    <button onclick="httpRequest('get_nfts_owned_by', true)">Get Nfts owned by Address (/address)</button>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('httpBaseDropdown')" class="dropbtn">Base Api</button>
+                <div id="httpBaseDropdown" class="dropdown-content">
+                    <button onclick="httpRequest('get_bases', false)">Get Bases</button>
+                    <button onclick="httpRequest('get_base_by_id', true)">Get Base By Id (/id)</button>
+                    <button onclick="httpRequest('get_base_changes_by_id', true)">Get Base Changes By Id (/id)</button>
+                    <button onclick="httpRequest('get_base_parts_by_id', true)">Get Base Parts By Id (/id)</button>
+                    <button onclick="httpRequest('get_base_themes_by_id', true)">Get Base Themes By Id (/id)</button>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('httpCollectionDropdown')" class="dropbtn">Collection Api</button>
+                <div id="httpCollectionDropdown" class="dropdown-content">
+                    <button onclick="httpRequest('get_collections', false)">Get Collections</button>
+                    <button onclick="httpRequest('get_collection_by_id', true)">Get Collection By Id (/id)</button>
+                    <button onclick="httpRequest('get_collection_changes_by_id', true)">Get Collection Changes By Id (/id)</button>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('httpRemarksDropdown')" class="dropbtn">Remark Api</button>
+                <div id="httpRemarksDropdown" class="dropdown-content">
+                    <button onclick="httpRequest('get_remarks_where_contains', true)">Get All Remarks Where contains substring (/substring)</button>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('httpLastBlockDropdown')" class="dropbtn">Block Scanner Api</button>
+                <div id="httpLastBlockDropdown" class="dropdown-content">
+                    <button onclick="httpRequest('get_last_block', false)">Get Latest Block Scanned</button>
+                </div>
+            </div>
+
+
+            <br />
+            <span>Socket Apis:</span>
+            <div class="dropdown">
+                <button onclick="toggleDropdown('socketApiDropdown')" class="dropbtn">Socket Apis</button>
+                <div id="socketApiDropdown" class="dropdown-content">
+                    <button onclick="sendData('api')">Get Available Api</button>
+                    <button onclick="subscribe('new_nft')" id="subscribe_nfts_btn">Subscribe to New Nfts</button>
+                    <button onclick="subscribe('new_nft_children')" id="subscribe_nft_children_btn">Subscribe to New Nft Children</button>
+                    <button onclick="subscribe('new_nft_resource')" id="subscribe_nft_resources_btn">Subscribe to New Nft Resources</button>
+                    <button onclick="subscribe('new_collection')" id="subscribe_collections_btn">Subscribe to New Collections</button>
+                    <button onclick="subscribe('new_base')" id="subscribe_bases_btn">Subscribe to New Bases</button>
+                    <button onclick="subscribe('new_base_part')" id="subscribe_base_parts_btn">Subscribe to New Base Parts</button>
+                    <button onclick="subscribe('new_block')" id="subscribe_blocks_btn">Subscribe to New Blocks</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <span>Http Data:</span><br />
+        <div id="httpDiv"></div>
+    </div>
+    <div>
+        <span>Socket Data:</span><br />
+        <div id="eventsDiv"></div>
+    </div>
+
+</body>
+</html>

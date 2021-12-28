@@ -34,7 +34,6 @@ export const addBase = async (bases, startBlock) => {
     let keys = Object.keys(JSON.parse(bases))
     let arrayBases = keys.map(name => JSON.parse(bases)[name])
     let totalBases = 0
-console.log(`Searching ${arrayBases.length} Bases`)
     await Promise.all(arrayBases.map(async (base, index) => {
         let maxBaseBlock = 0
         let {
