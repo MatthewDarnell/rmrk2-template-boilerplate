@@ -4,8 +4,10 @@
   "description": "A Template on which to Build RMRK2 WebApps",
   "main": "src/index.js",
   "scripts": {
+    "build-client": "browserify client/static/js/rmrk-listener-client.js -p esmify > client/static/js/bundle.js",
     "start-db": "docker-compose up",
-    "create-db": "npx ts-node ./src/createdb.ts",
+    "create-db": "npx ts-node src/bin/createdb.ts",
+    "consolidated2db": "npx ts-node src/bin/consolidated_dump_2_db.ts",
     "start": "npx ts-node ./src/index.ts",
     "fetch": "rmrk-tools-fetch",
     "consolidate": "rmrk-tools-consolidate"
@@ -14,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@polkadot/api": "^6.12.1",
+    "@polkadot/keyring": "^8.2.2",
     "@types/node": "^16.9.6",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
@@ -23,9 +26,14 @@
     "pg": "^8.7.1",
     "pg-listen": "^1.7.0",
     "prettier": "^2.3.2",
+    "ramda": "^0.27.1",
     "rmrk-tools": "2.0.11",
     "socket.io": "^4.4.0",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5"
+  },
+  "devDependencies": {
+    "browser-resolve": "^2.0.0",
+    "esmify": "^2.1.1"
   }
 }

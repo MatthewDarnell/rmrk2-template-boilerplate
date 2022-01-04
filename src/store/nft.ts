@@ -1,3 +1,4 @@
+const R = require('ramda');
 
 import {db_get, db_query} from "../database";
 
@@ -64,14 +65,14 @@ export const addNft = async (nftMap) => {
     let insertionValues = ""
     let totalNfts = 0
 
-    let keys = Object.keys(JSON.parse(nftMap))
-    let nftArray = keys.map(name => JSON.parse(nftMap)[name])
+    let nftArray = R.values(JSON.parse(nftMap))
     for(let i = 0; i < nftArray.length; i++) {
         let nft = nftArray[i]
         if(!nft.hasOwnProperty('resources')) {
             continue
+            console.log('continuing')
         }
-        nft.resources.map(resource => {
+        await Promise.all(nft.resources.map(async resource => {
             let {
                 block,
                 collection,
@@ -99,18 +100,26 @@ export const addNft = async (nftMap) => {
                 })
             }
             totalNfts++
-            insertionValues += `('${id}', ${block}, '${collection}', '${symbol}', '${JSON.stringify(priority)}', ${transferable}, '${sn}', '${metadata}', '${owner}', '${rootowner}', ${forsale}, '${burned}', '${JSON.stringify(properties)}', ${pending}, ${maxBlock}), `
-        })
+            insertionValues = `('${id}', ${block}, '${collection}', '${symbol}', '${JSON.stringify(priority)}', ${transferable}, '${sn}', '${metadata}', '${owner}', '${rootowner}', ${forsale}, '${burned}', '${JSON.stringify(properties)}', ${pending}, ${maxBlock})`
+            let query = insert + insertionValues
+            query +=` ON CONFLICT (id) DO UPDATE SET block = excluded.block, collection = excluded.collection, symbol = excluded.symbol, priority = excluded.priority, transferable = excluded.transferable, sn = excluded.sn, metadata = excluded.metadata, owner = excluded.owner, rootowner = excluded.rootowner, forsale = excluded.forsale, burned = excluded.burned, properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;`
+            await db_query(query, "")
+        }))
     }
     if(totalNfts > 0) {
-        insertionValues = insertionValues.slice(0, insertionValues.length-2)
+      /*  insertionValues = insertionValues.slice(0, insertionValues.length-2)
         insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, collection = excluded.collection, symbol = excluded.symbol, priority = excluded.priority, transferable = excluded.transferable, sn = excluded.sn, metadata = excluded.metadata, owner = excluded.owner, rootowner = excluded.rootowner, forsale = excluded.forsale, burned = excluded.burned, properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;`
-        await db_query(insert + insertionValues, "")
+        console.log('inserting nfts')
+        await db_query(insert + insertionValues, "")*/
+        console.log('inserted ' + totalNfts + ' nfts')
     }
+    console.log('adding changes')
     await addNftChanges(nftArray)
+    console.log('adding resources')
     await addNewResource(nftArray);
+    console.log('adding children')
     await addNftChildren(nftArray);
-    await addNftChanges(nftArray);
+    console.log('adding reactions')
     await addNftReactions(nftArray);
 
     return 0
@@ -119,15 +128,14 @@ export const addNft = async (nftMap) => {
 
 const addNftChanges = async (nftArray) => {
     try {
-        const insert = "INSERT INTO nft_changes_2 (nft_id, change_index, field, old, new, caller, block, opType) VALUES ";
-        let insertionValues = ""
+        let insert = "INSERT INTO nft_changes_2 (nft_id, change_index, field, old, new, caller, block, opType) VALUES ";
         let totalChanges = 0
         for(let i = 0; i < nftArray.length; i++) {
             let nft = nftArray[i]
             if(!nft.hasOwnProperty('changes')) {
                 continue
             }
-            nft.changes.map((change, index) => {
+            await Promise.all(nft.changes.map(async (change, index) => {
                 let {
                     field,
                     old,
@@ -135,19 +143,21 @@ const addNftChanges = async (nftArray) => {
                     block,
                     opType
                 } = change
-                insertionValues += `('${nft.id}', ${index}, '${field}', '${old}', '${change.new}', '${caller}', ${block}, '${opType}'), `
+                let insertionValues = `('${nft.id}', ${index}, '${field}', '${old}', '${change.new}', '${caller}', ${block}, '${opType}')`
+                let query = insert + insertionValues
+                query += ` ON CONFLICT (nft_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller, opType = excluded.opType;`
                 totalChanges++
-            })
+                if(totalChanges % 5000 == 0){
+                    console.log('inserting change')
+                }
+                await db_query(query, "")
+            }))
         }
-
-        let query = insert + insertionValues
-
         if(totalChanges > 0) {
-            query = query.slice(0, query.length-2)
-            query += ` ON CONFLICT (nft_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller, opType = excluded.opType;`
-            return await db_query(query, "")
+
         }
-        return 0
+        console.log('done inserting changes');
+        return 0;
     } catch(error) {
         console.error(`Error in AddNftChanges: ${error}`)
         throw new Error(error)
@@ -157,33 +167,35 @@ const addNftChanges = async (nftArray) => {
 
 const addNftChildren = async (nftArray) => {
     try {
-        const insert = "INSERT INTO nft_children_2 (nft_id, id, pending, equipped) VALUES ";
-        let insertionValues = ""
+        let insert = "INSERT INTO nft_children_2 (nft_id, id, pending, equipped) VALUES ";
         let totalChildren = 0
         for(let i = 0; i < nftArray.length; i++) {
             let nft = nftArray[i]
             if(!nft.hasOwnProperty('children')) {
                 continue
             }
-            nft.children.map(child => {
+            await Promise.all(nft.children.map(async child => {
                 let {
                     id,
                     pending,
                     equipped
                 } = child
-                insertionValues += `('${nft.id}', '${id}', ${pending}, '${equipped}'), `
+                let insertionValues = `('${nft.id}', '${id}', ${pending}, '${equipped}')`
                 totalChildren++
-            })
+                if(totalChildren == 1) {
+                    await db_query("DELETE FROM nft_children_2;", "")
+                }
+                let query = insert + insertionValues;
+                query += ` ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;`
+                if(totalChildren % 10000 == 0) {
+                    console.log(query)
+                }
+                await db_query(query, "")
+            }))
         }
 
-        let query = insert + insertionValues
-
         if(totalChildren > 0) {
-            query = "DELETE FROM nft_children_2; " + query
-            query = query.slice(0, query.length-2)
-            query += ` ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;`
-            console.log(query)
-            return await db_query(query, "")
+            console.log('inserted ' + totalChildren + ' children')
         }
         return 0
     } catch(error) {
@@ -195,8 +207,7 @@ const addNftChildren = async (nftArray) => {
 
 const addNftReactions = async (nftArray) => {
     try {
-        const insert = "INSERT INTO nft_reactions_2 (nft_id, reaction, wallets) VALUES ";
-        let insertionValues = ""
+        let insert = "INSERT INTO nft_reactions_2 (nft_id, reaction, wallets) VALUES ";
         let totalReactions = 0
 
         for(let i = 0; i < nftArray.length; i++) {
@@ -206,21 +217,20 @@ const addNftReactions = async (nftArray) => {
             }
             let reactions = nft.reactions
 
-            let keys = Object.keys(reactions)
-            let arrayReactions = keys.map(name => JSON.parse(reactions)[name])
-
-            arrayReactions.map((reaction, index) => {
-                insertionValues += `('${nft.id}', '${keys[index]}', '${JSON.stringify(reaction)}'), `
+            let arrayReactions = R.values(reactions)
+            //let keys = Object.keys(reactions)
+            //let arrayReactions = keys.map(name => JSON.parse(reactions)[name])
+            await Promise.all(arrayReactions.map(async (reaction, index) => {
+                let insertionValues = `('${nft.id}', '${index}', '${JSON.stringify(reaction)}')`
+                let query = insert + insertionValues
+                query += ` ON CONFLICT (nft_id, reaction) DO UPDATE SET wallets = excluded.wallets;`
                 totalReactions++
-            })
+                await db_query(query, "")
+            }))
         }
 
-        let query = insert + insertionValues
-
         if(totalReactions > 0) {
-            query = query.slice(0, query.length-2)
-            query += ` ON CONFLICT (nft_id, reaction) DO UPDATE SET wallets = excluded.wallets;`
-            return await db_query(query, "")
+
         } else {
             return 0
         }
@@ -241,7 +251,7 @@ const addNewResource = async (nftArray) => {
             if(!nft.hasOwnProperty('resources')) {
                 continue
             }
-            nft.resources.map(resource => {
+            await Promise.all(nft.resources.map(async resource => {
                 let {
                     pending,
                     id,
@@ -266,17 +276,19 @@ const addNewResource = async (nftArray) => {
                     parts = resource.parts
                 }
                 totalResources++
-                insertionValues += `('${nft.id}', '${id}', ${pending}, ${src}, ${slot}, '${thumb}', '{}', ${base}, '${JSON.stringify(parts)}', NULL, '${nft.metadata}'), `
-            })
+
+                insertionValues = `('${nft.id}', '${id}', ${pending}, ${src}, ${slot}, '${thumb}', '{}', ${base}, '${JSON.stringify(parts)}', NULL, '${nft.metadata}')`
+                let query = insert + insertionValues
+                query += ` ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;`
+                await db_query(query, "")
+            }))
         }
         if(totalResources > 0) {
-            insertionValues = insertionValues.slice(0, insertionValues.length-2)
-            insertionValues += ` ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;`
-            return await db_query(insert + insertionValues, "")
+            console.log(`Inserted ${totalResources} resources`)
         }
         return 0
     } catch(error) {
-        console.error(`Error in addNftReactions: ${error}`)
+        console.error(`Error in addNftResources: ${error}`)
         throw new Error(error)
     }
 }
