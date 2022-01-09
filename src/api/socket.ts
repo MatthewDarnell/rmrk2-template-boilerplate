@@ -67,6 +67,6 @@ export const startSocketApi = () => {
 }
 
 export const emitSubscriptionEvent = (event, data) => {
-    console.log(`emitting event ${event}`)
+    //console.log(`emitting event ${event}`)
     io.sockets.in(event).emit('event', {event, data})
 }

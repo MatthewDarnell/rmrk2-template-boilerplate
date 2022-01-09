@@ -45,6 +45,7 @@ const consolidated2Db = async () => {
         console.log(`Reading: ${nftSize} nfts, ${collectionSize} collections, ${baseSize} bases, ${invalidSize} invalids.\n
                     Dump ends at Block: <${lastBlock}>`)
 
+
         /*
             Bases
         */

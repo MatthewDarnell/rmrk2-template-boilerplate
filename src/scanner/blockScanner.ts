@@ -8,18 +8,24 @@ import { addInvalid} from "../store/invalid"
 
 export const startBlockScanner = async conn => {
     try {
+        let blockScannerMaxChunk = parseInt(process.env.BLOCKSCANNERMAXCHUNK) || 100
         let block = await getLastBlockScanned()
         let finalizedBlock = await getLatestFinalizedBlock(conn)
+        if(blockScannerMaxChunk < 0) {
+            blockScannerMaxChunk = finalizedBlock
+        }
         if(finalizedBlock > block) {
-            console.log(`Scanning ${finalizedBlock-block} blocks. (${block}  --->  ${finalizedBlock})`)
-            let remarks = await fetch(conn, block, finalizedBlock)
+            let to = finalizedBlock - block > blockScannerMaxChunk ? block + blockScannerMaxChunk : finalizedBlock
+            console.log(`Scanning ${to-block} blocks. (${block}  --->  ${to})`)
+            let remarks = await fetch(conn, block, to)
             remarks = [...remarks]
-            await setLastBlockScanned(finalizedBlock)
             let { bases, invalid, nfts, collections } = await consolidate(conn, block, remarks);
-            await addNft(nfts)
-            await addBase(bases, block)
             await addInvalid(invalid, block)
-            await addCollection(collections, block)
+            await addBase(bases, block)
+            await addCollection(JSON.parse(collections), block)
+            await addNft(nfts)
+            await setLastBlockScanned(to)
+
         }
     } catch(error) {
         console.error(`Error in startBlockScanner - ${error}`)

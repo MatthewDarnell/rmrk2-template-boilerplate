@@ -1,3 +1,4 @@
+const R = require('ramda');
 
 import {db_get, db_query} from "../database";
 
@@ -8,21 +9,23 @@ export const getCollections = async () => {
 }
 
 export const getCollectionById = async id => {
-    const query = `SELECT * FROM collections_2 WHERE id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM collections_2 WHERE id=$1`
+    return (await db_get(query, [id]))
 }
 
 export const getCollectionChangesById = async id => {
-    const query = `SELECT * FROM collection_changes_2 WHERE collection_id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM collection_changes_2 WHERE collection_id=$1`
+    return (await db_get(query, [id]))
 }
 
 export const addCollection = async (collections, startBlock) => {
-    const insert = "INSERT INTO collections_2 (id, block, max, issuer, symbol, metadata, updatedAtBlock) VALUES ";
-    let insertionValues = ""
+    const insert = "INSERT INTO collections_2 (id, block, max, issuer, symbol, metadata, updatedAtBlock) VALUES " +
+                   " ($1, $2, $3, $4, $5, $6, $7) " +
+                   " ON CONFLICT (id) DO UPDATE SET block = excluded.block, max = excluded.max, issuer = excluded.issuer, " +
+                   "symbol = excluded.symbol, metadata = excluded.metadata, updatedAtBlock = excluded.updatedAtBlock;";
 
-    let keys = Object.keys(JSON.parse(collections))
-    let arrayCollections = keys.map(name => JSON.parse(collections)[name])
+    let arrayCollections = R.values(collections)
+
     let totalCollections = 0
 
     await Promise.all(arrayCollections.map(async (collection, index) => {
@@ -43,22 +46,28 @@ export const addCollection = async (collections, startBlock) => {
             maxCollectionBlock = maxCollectionBlock > parseInt(block) ? maxCollectionBlock : parseInt(block)
         }
         if(maxCollectionBlock > parseInt(startBlock)) {
-            insertionValues += `('${id}', ${block}, ${max}, '${issuer}', '${symbol}', '${metadata}', ${maxCollectionBlock}), `;
+            let insertionValues = [
+                id,
+                block,
+                max,
+                issuer,
+                symbol,
+                metadata,
+                maxCollectionBlock
+            ]
             totalCollections++
+            await db_query(insert, insertionValues)
         }
     }))
-    if(totalCollections > 0) {
-        insertionValues = insertionValues.slice(0, insertionValues.length-2)
-        insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, max = excluded.max, issuer = excluded.issuer, symbol = excluded.symbol, metadata = excluded.metadata, updatedAtBlock = excluded.updatedAtBlock;`
-        return await db_query(insert + insertionValues, "")
-    }
-    return 0
+    return totalCollections
 }
 
 const addCollectionChanges = async (collection) => {
     try {
-        const insert = "INSERT INTO collection_changes_2 (collection_id, change_index, field, old, new, caller, block, opType) VALUES ";
-        let insertionValues = ""
+        const insert = "INSERT INTO collection_changes_2 (collection_id, change_index, field, old, new, caller, block, opType) VALUES " +
+                       " ($1, $2, $3, $4, $5, $6, $7, $8) " +
+                       " ON CONFLICT (collection_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, " +
+                       "new = excluded.new, caller = excluded.caller, opType = excluded.opType;";
 
         let totalChanges = 0
         if(!collection.hasOwnProperty('changes') || !collection.hasOwnProperty('id')) {
@@ -66,7 +75,7 @@ const addCollectionChanges = async (collection) => {
         }
         let { changes, id } = collection
         if(changes.length > 0) {
-            changes.map((change, change_index) => {
+            await Promise.all(changes.map(async (change, change_index) => {
                 let {
                     field,
                     old,
@@ -74,17 +83,21 @@ const addCollectionChanges = async (collection) => {
                     block,
                     opType
                 } = change
-                insertionValues += `('${id}', ${change_index}, , '${field}', '${old}', '${change.new}', '${caller}', ${block}, '${opType}'), `;
+                let insertionValues = [
+                    id,
+                    change_index,
+                    field,
+                    old,
+                    change.new,
+                    caller,
+                    block,
+                    opType
+                ]
                 totalChanges++
-            })
+                await db_query(insert, insertionValues)
+            }))
         }
-
-        if(totalChanges > 0) {
-            insertionValues = insertionValues.slice(0, insertionValues.length-2)
-            insertionValues += ` ON CONFLICT (collection_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller, opType = excluded.opType;`
-            return await db_query(insert + insertionValues, "")
-        }
-        return 0
+        return totalChanges
     } catch(error) {
         console.error(`Error adding Collection Changes: ${error}`)
     }

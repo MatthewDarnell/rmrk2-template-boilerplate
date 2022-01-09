@@ -1,4 +1,4 @@
-
+const R = require("ramda")
 import { db_get, db_query } from "../database";
 
 export const getBases = async () => {
@@ -7,34 +7,34 @@ export const getBases = async () => {
 }
 
 export const getBaseById = async id => {
-    const query = `SELECT * FROM bases_2 WHERE id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM bases_2 WHERE id=$1`
+    return (await db_get(query, [id]))
 }
 
 export const getBaseChangesById = async id => {
-    const query = `SELECT * FROM base_changes_2 WHERE base_id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM base_changes_2 WHERE base_id=$1`
+    return (await db_get(query, [id]))
 }
 
 export const getBasePartsById = async id => {
-    const query = `SELECT * FROM base_parts_2 WHERE base_id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM base_parts_2 WHERE base_id=$1`
+    return (await db_get(query, [id]))
 }
 
 export const getBaseThemesById = async id => {
-    const query = `SELECT * FROM base_themes_2 WHERE base_id='${id}'`
-    return (await db_get(query, ""))
+    const query = `SELECT * FROM base_themes_2 WHERE base_id=$1`
+    return (await db_get(query, [id]))
 }
 
 
 export const addBase = async (bases, startBlock) => {
-    const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES ";
-    let insertionValues = ""
-
-    let keys = Object.keys(JSON.parse(bases))
-    let arrayBases = keys.map(name => JSON.parse(bases)[name])
+    const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES " +
+                   " ($1, $2, $3, $4, $5, $6) " +
+                   " ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type," +
+                   "issuer = excluded.issuer, updatedAtBlock = excluded.updatedAtBlock;";
+    const arrayBases = R.values(JSON.parse(bases))
     let totalBases = 0
-    await Promise.all(arrayBases.map(async (base, index) => {
+    await Promise.all(arrayBases.map(async base => {
         let maxBaseBlock = 0
         let {
             changes,
@@ -55,26 +55,29 @@ export const addBase = async (bases, startBlock) => {
             maxBaseBlock = maxBaseBlock > parseInt(block) ? maxBaseBlock : parseInt(block)
         }
         if(maxBaseBlock > parseInt(startBlock)) {
-            insertionValues += `('${id}', ${block}, '${symbol}', '${type}', '${issuer}', ${maxBaseBlock}), `;
+            let insertionValues = [
+                id,
+                block,
+                symbol,
+                type,
+                issuer,
+                maxBaseBlock
+            ]
             totalBases++
+            await db_query(insert, insertionValues)
         }
     }))
-    if(totalBases > 0) {
-        insertionValues = insertionValues.slice(0, insertionValues.length-2)
-        insertionValues += ` ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type, issuer = excluded.issuer, updatedAtBlock = excluded.updatedAtBlock;`
-        return await db_query(insert + insertionValues, "")
-    }
-    return 0
+    return totalBases
 }
 const addBaseChanges = async base => {
-    const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES ";
-    let insertionValues = ""
-
+    const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES " +
+                   " ($1, $2, $3, $4, $5, $6, $7, $8) " +
+                   "ON CONFLICT (base_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, " +
+                   " new = excluded.new, caller = excluded.caller, opType = excluded.opType;";
     let totalChanges = 0
-
     let { changes, id } = base
     if(changes.length > 0) {
-        changes.map((change, change_index) => {
+        await Promise.all(changes.map(async (change, change_index) => {
             let {
                 field,
                 old,
@@ -82,38 +85,42 @@ const addBaseChanges = async base => {
                 block,
                 opType
             } = change
-            insertionValues += `('${id}', ${change_index}, '${field}', '${old}', '${change.new}', '${caller}', ${block}, '${opType}'), `;
+            let insertionValues = [
+                id,
+                change_index,
+                field,
+                old,
+                change.new,
+                caller,
+                block,
+                opType
+            ]
             totalChanges++
-        })
+            await db_query(insert, insertionValues)
+        }))
     }
-
-    if(totalChanges > 0) {
-        insertionValues = insertionValues.slice(0, insertionValues.length-2)
-        insertionValues += ` ON CONFLICT (base_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller, opType = excluded.opType;`
-        return await db_query(insert + insertionValues, "")
-    }
-    return 0
+    return totalChanges
 }
 const addBaseParts = async base => {
-    const insert = "INSERT INTO base_parts_2 (base_id, id, type, src, z, equippable, themable) VALUES ";
-    let insertionValues = ""
-
+    const insert = "INSERT INTO base_parts_2 (base_id, id, type, src, z, equippable, themable) VALUES " +
+                   " ($1, $2, $3, $4, $5, $6, $7) " +
+                   "ON CONFLICT (base_id, id) DO UPDATE SET type = excluded.type, src = excluded.src, " +
+                   "z = excluded.z, equippable = excluded.equippable, themable = excluded.themable;";
     let totalParts = 0
-
     let { parts, id } = base
     if(parts.length > 0) {
-        parts.map((part) => {
+        await Promise.all(parts.map(async part => {
             let {
                 type,
                 z
             } = part
 
-            let equippable = 'NULL'
-            let themable = 'NULL'
-            let src = 'NULL'
+            let equippable
+            let themable
+            let src
 
             if(part.equippable) {
-                equippable = `'${JSON.stringify(part.equippable)}'`
+                equippable = JSON.stringify(part.equippable)
             }
             if(part.themable) {
                 themable = `${part.themable}`
@@ -121,15 +128,18 @@ const addBaseParts = async base => {
             if(part.src) {
                 src = `'${part.src}'`
             }
-            insertionValues += `('${id}', '${part.id}', '${type}', ${src}, ${z}, ${equippable}, ${themable}), `;
+            let insertionValues = [
+                id,
+                part.id,
+                type,
+                src,
+                z,
+                equippable,
+                themable
+            ]
+            await db_query(insert, insertionValues)
             totalParts++
-        })
+        }))
     }
-
-    if(totalParts > 0) {
-        insertionValues = insertionValues.slice(0, insertionValues.length-2)
-        insertionValues += ` ON CONFLICT (base_id, id) DO UPDATE SET type = excluded.type, src = excluded.src, z = excluded.z, equippable = excluded.equippable, themable = excluded.themable;`
-        return await db_query(insert + insertionValues, "")
-    }
-    return 0
+    return totalParts
 }

@@ -1,12 +1,14 @@
 
-import { fetchRemarks, getRemarksFromBlocks, Consolidator } from 'rmrk-tools';
+import {fetchRemarks, getRemarksFromBlocks, Consolidator, RemarkListener} from 'rmrk-tools';
+import {Remark} from "rmrk-tools/dist/tools/consolidator/remark";
 import {addRemarkArray, getRemarks} from "../store/remarks";
 
 export const fetch = async (api, from, to) => {
     try {
-        const remarkBlocks = await fetchRemarks(api, from, to, ["0x726d726b", "0x524d524b"]);
+        const filters = ["0x726d726b", "0x524d524b"]
+        const remarkBlocks = await fetchRemarks(api, from, to, filters);
         if (remarkBlocks) {
-            return getRemarksFromBlocks(remarkBlocks, ["0x726d726b", "0x524d524b"]);
+            return getRemarksFromBlocks(remarkBlocks, filters);
         }
         return []
     } catch (error) {
@@ -22,6 +24,15 @@ export const consolidate = async (api, from, r) => {
             await addRemarkArray(remarks.filter(remark => remark.block > from))
         }
         let storedRemarks = (await getRemarks())
+        storedRemarks = storedRemarks.map(remark => {
+            let r: Remark = remark
+            if(r.extra_ex) {
+                // @ts-ignore
+                r.extra_ex = JSON.parse(r.extra_ex)
+            }
+            return r
+        })
+
         const consolidator = new Consolidator();
         const { bases, collections, invalid, nfts } = await consolidator.consolidate(storedRemarks);
         //@ts-ignore

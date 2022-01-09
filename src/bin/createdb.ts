@@ -13,7 +13,7 @@ const createDb = async () => {
         })
 
         await client.connect()
-        const res = await client.query(`CREATE DATABASE ${process.env.DB}`);
+        const res = await client.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB}`);
         await client.end()
         return res
     } catch(e) {
@@ -84,8 +84,9 @@ const createSchema = async () => {
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_parts_2 ON base_parts_2 (base_id, id);\n"+
         "CREATE TABLE IF NOT EXISTS invalid_2 (invalid_index integer primary key, op_type text, block integer, caller text, object_id text, message text);\n"+
         "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);\n" +
-        "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, UNIQUE(block, caller, interaction_type, version, remark))";
-
+        "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, hash text UNIQUE);"
+        //"CREATE UNIQUE INDEX remarks_extra_ex_unq_idx ON remarks (block, caller, interaction_type, version, remark, extra_ex) WHERE extra_ex IS NOT NULL";
+console.log(schema)
     let res = await client.query(schema);
     console.log(res)
     res = await client.query(notify);
