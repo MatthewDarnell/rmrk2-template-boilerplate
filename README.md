@@ -23,6 +23,8 @@ Start the Database: `npm run start-db`
 
 Create the Database: `npm run create-db`
 
+Run [Substrate](https://github.com/paritytech/substrate): `substrate --dev --tmp` (if using a dev node)
+
 Start the app: `npm run start`
 
 
