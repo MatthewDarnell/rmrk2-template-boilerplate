@@ -4,7 +4,6 @@
   "description": "A Template on which to Build RMRK2 WebApps",
   "main": "src/index.js",
   "scripts": {
-    "build-client": "browserify client/static/js/rmrk-listener-client.js -p esmify > client/static/js/bundle.js",
     "start-db": "docker-compose up",
     "create-db": "npx ts-node src/bin/createdb.ts",
     "consolidated2db": "npx ts-node src/bin/consolidated_dump_2_db.ts",

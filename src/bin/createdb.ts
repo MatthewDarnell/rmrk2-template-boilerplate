@@ -13,11 +13,11 @@ const createDb = async () => {
         })
 
         await client.connect()
-        const res = await client.query(`CREATE DATABASE IF NOT EXISTS ${process.env.DB}`);
+        const res = await client.query(`CREATE DATABASE ${process.env.DB}`);
         await client.end()
         return res
     } catch(e) {
-        console.log("Db already exists?");
+        console.log(`Db already exists?: ${e}`);
     }
 };
 
