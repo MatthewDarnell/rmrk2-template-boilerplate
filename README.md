@@ -59,7 +59,7 @@ npm run unconsolidated2db /path/to/Unconsolidated
 
 `consolidated2db` imports a RMRK2 dump into the db. (https://docs.rmrk.app/syncing/#download-dumps)
 
-`unconsolidated2db` imports a RMRK2 unconsolidated dump into the db.
+`unconsolidated2db` imports a RMRK2 unconsolidated dump into the db, consolidates, and then stores the resulting data.
 
 ### Note
 
