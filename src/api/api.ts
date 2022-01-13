@@ -1,7 +1,6 @@
-
-import {fetchRemarks, getRemarksFromBlocks, Consolidator, RemarkListener} from 'rmrk-tools';
-import {Remark} from "rmrk-tools/dist/tools/consolidator/remark";
-import {addRemarkArray, getRemarks} from "../store/remarks";
+import { fetchRemarks, getRemarksFromBlocks, Consolidator } from 'rmrk-tools';
+import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
+import { addRemarkArray, getRemarksUpTo } from "../store/remarks";
 
 export const fetch = async (api, from, to) => {
     try {
@@ -17,13 +16,13 @@ export const fetch = async (api, from, to) => {
     }
 }
 
-export const consolidate = async (api, from, r) => {
+export const consolidate = async (api, from, to, r) => {
     try {
         let remarks = [...r]
         if(remarks.length > 0) {
             await addRemarkArray(remarks.filter(remark => remark.block > from))
         }
-        let storedRemarks = (await getRemarks())
+        let storedRemarks = (await getRemarksUpTo(to))
         storedRemarks = storedRemarks.map(remark => {
             let r: Remark = remark
             if(r.extra_ex) {
@@ -32,8 +31,9 @@ export const consolidate = async (api, from, r) => {
             }
             return r
         })
+        const ss58Format = parseInt(process.env.SS58ADDRESSFORMAT) || 2
 
-        const consolidator = new Consolidator();
+        const consolidator = new Consolidator(ss58Format);
         const { bases, collections, invalid, nfts } = await consolidator.consolidate(storedRemarks);
         //@ts-ignore
         BigInt.prototype.toJSON = function () {

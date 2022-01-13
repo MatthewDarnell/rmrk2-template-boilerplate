@@ -19,11 +19,13 @@ export const startBlockScanner = async conn => {
             console.log(`Scanning ${to-block} blocks. (${block}  --->  ${to})`)
             let remarks = await fetch(conn, block, to)
             remarks = [...remarks]
-            let { bases, invalid, nfts, collections } = await consolidate(conn, block, remarks);
+
+            let { invalid, bases, nfts, collections } = await consolidate(conn, block, to, remarks);
+
             await addInvalid(invalid, block)
             await addBase(bases, block)
             await addCollection(JSON.parse(collections), block)
-            await addNft(nfts)
+            await addNft(nfts, block)
             await setLastBlockScanned(to)
 
         }

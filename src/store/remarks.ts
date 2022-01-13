@@ -11,6 +11,16 @@ export const getRemarks = async () => {
         throw new Error(error)
     }
 }
+
+export const getRemarksUpTo = async max => {
+    try {
+        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks WHERE block <= $1 ORDER BY id ASC"
+        return (await db_get(query, [max]))
+    } catch(error) {
+        console.error(`Error Getting Remarks ${error}`)
+        throw new Error(error)
+    }
+}
 export const getRemarksWhereContains = async contains => {
     try {
         const query = `SELECT block, caller, remark FROM remarks WHERE remark LIKE '%$1%' ORDER BY id ASC`
@@ -34,9 +44,8 @@ export const addRemarkArray = async remarks => {
             if(!remark.block || !remark.caller || !remark.interaction_type || !remark.version || !remark.remark) {
                 continue
             }
-
             if(remark.extra_ex) {
-                extra_ex = remark.extra_ex
+                extra_ex = JSON.stringify(remark.extra_ex)
                 hash = crypto.createHash('sha256').update(JSON.stringify({
                     block: remark.block,
                     caller: remark.caller,
@@ -63,7 +72,6 @@ export const addRemarkArray = async remarks => {
                 extra_ex,
                 hash
             ]
-
             await db_query(insert, params)
         }
     } catch(error) {

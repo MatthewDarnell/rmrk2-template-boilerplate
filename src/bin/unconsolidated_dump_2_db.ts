@@ -8,6 +8,12 @@ import { Client } from 'pg'
 
 import {setLastBlockScanned} from "../store/last_block";
 import { addRemarkArray } from "../store/remarks";
+import {getConnection} from "../scanner/connection";
+import {consolidate} from "../api/api";
+import {addInvalid} from "../store/invalid";
+import {addBase} from "../store/base";
+import {addCollection} from "../store/collection";
+import {addNft} from "../store/nft";
 
 const unConsolidated2Db = async () => {
     try {
@@ -18,6 +24,8 @@ const unConsolidated2Db = async () => {
             password: process.env.PGPASSWORD,
             port: process.env.PGPORT,
         })
+        let conn = await getConnection(process.env.WSURL)
+
         await client.connect()
 
         if(process.argv.length < 3) {
@@ -75,14 +83,14 @@ const unConsolidated2Db = async () => {
                     remark: fullRemark
                 }
                 if(extras) { //Join any remaining fields
-                    rmrk['extra_ex'] = JSON.stringify(extras)
+                    rmrk['extra_ex'] = extras
                 }
                 return rmrk
             }))
         })))    //returns array of arrays
             .flat()
 
-        console.log(`Inserting ${remarkArray.length} RMRKs`)
+        console.log(`Inserting ${remarkArray.length} RMRKs, this could take a while`)
         await addRemarkArray(remarkArray)
 
         let maxBlock = 0
@@ -95,8 +103,21 @@ const unConsolidated2Db = async () => {
         console.log('Setting Last Block: ', maxBlock)
         await setLastBlockScanned(maxBlock)
 
+        console.log('Done importing Unconsolidated')
+        console.log('Consolidating. This could take a while')
+
+
+        let { invalid, bases, nfts, collections } = await consolidate(conn, 0, maxBlock, []);
+
+        console.log('Adding Invalids')
+        await addInvalid(invalid, 0)
+        console.log('Adding Bases')
+        await addBase(bases, 0)
+        console.log('Adding Collections')
+        await addCollection(JSON.parse(collections), 0)
+        console.log('Adding Nfts')
+        await addNft(nfts, 0)
         await client.end()
-        console.log('Done!')
     } catch(error) {
         console.error(`Error Converting Consolidated Rmrk To Db!: ${error}`)
     }
@@ -105,5 +126,7 @@ const unConsolidated2Db = async () => {
 
 (async () => {
     await unConsolidated2Db()
+    console.log('Done!')
+    process.exit(0)
 })()
 

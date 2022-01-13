@@ -86,14 +86,15 @@ const createSchema = async () => {
         "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);\n" +
         "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, hash text UNIQUE);"
         //"CREATE UNIQUE INDEX remarks_extra_ex_unq_idx ON remarks (block, caller, interaction_type, version, remark, extra_ex) WHERE extra_ex IS NOT NULL";
-console.log(schema)
-    let res = await client.query(schema);
-    console.log(res)
-    res = await client.query(notify);
-    console.log(res)
+    console.log(schema)
+    await client.query(schema);
+    console.log(notify)
+    await client.query(notify);
     await client.end()
 };
 createDb().then(async () => {
     await createSchema()
+    console.log('Done!')
+    process.exit(0)
 })
 

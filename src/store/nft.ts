@@ -60,7 +60,7 @@ export const getNftReactionsByNftId = async nftId => {
     return (await db_get(query, [nftId]))
 }
 
-export const addNft = async (nftMap) => {
+export const addNft = async (nftMap, from) => {
     try {
         const insert = "INSERT INTO nfts_2 (id, block, collection, symbol, priority, transferable, sn, metadata, owner, " +
             "rootowner, forsale, burned, properties, pending, updatedAtBlock) " +
@@ -72,6 +72,8 @@ export const addNft = async (nftMap) => {
         let totalNfts = 0
 
         let nftArray = R.values(JSON.parse(nftMap))
+            .filter(nft => nft.block >= from)
+
         await Promise.all(nftArray.map(async nft => {
             let {
                 block,
