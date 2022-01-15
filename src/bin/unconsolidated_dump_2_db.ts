@@ -24,7 +24,6 @@ const unConsolidated2Db = async () => {
             password: process.env.PGPASSWORD,
             port: process.env.PGPORT,
         })
-        let conn = await getConnection(process.env.WSURL)
 
         await client.connect()
 
@@ -106,6 +105,7 @@ const unConsolidated2Db = async () => {
         console.log('Done importing Unconsolidated')
         console.log('Consolidating. This could take a while')
 
+        let conn = await getConnection(process.env.WSURL)
 
         let { invalid, bases, nfts, collections } = await consolidate(conn, 0, maxBlock, []);
 

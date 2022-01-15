@@ -4,7 +4,7 @@ import {db_get, db_query} from "../database";
 
 export const getRemarks = async () => {
     try {
-        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks ORDER BY id ASC"
+        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks ORDER BY block ASC, id ASC"
         return (await db_get(query, ""))
     } catch(error) {
         console.error(`Error Getting Remarks ${error}`)
@@ -14,7 +14,7 @@ export const getRemarks = async () => {
 
 export const getRemarksUpTo = async max => {
     try {
-        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks WHERE block <= $1 ORDER BY id ASC"
+        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks WHERE block <= $1 ORDER BY block ASC, id ASC"
         return (await db_get(query, [max]))
     } catch(error) {
         console.error(`Error Getting Remarks ${error}`)
@@ -23,7 +23,7 @@ export const getRemarksUpTo = async max => {
 }
 export const getRemarksWhereContains = async contains => {
     try {
-        const query = `SELECT block, caller, remark FROM remarks WHERE remark LIKE '%$1%' ORDER BY id ASC`
+        const query = `SELECT block, caller, remark FROM remarks WHERE remark LIKE '%$1%' ORDER BY block ASC, id ASC`
         return (await db_get(query, contains))
     } catch(error) {
         console.error(`Error Getting Remarks Where Contains --- ${error}`)
