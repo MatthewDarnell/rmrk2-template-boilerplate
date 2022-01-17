@@ -28,7 +28,7 @@ export const addCollection = async (collections, startBlock) => {
 
     let totalCollections = 0
 
-    await Promise.all(arrayCollections.map(async (collection, index) => {
+    await Promise.all(arrayCollections.map(async collection => {
         let maxCollectionBlock = 0
         let {
             changes,
@@ -40,12 +40,12 @@ export const addCollection = async (collections, startBlock) => {
             metadata
         } = collection
         if(changes.length > 0) {
-            maxCollectionBlock = parseInt(changes[changes.length - 1].block)
+            maxCollectionBlock = changes[changes.length - 1].block
             await addCollectionChanges(collection)
         } else {
-            maxCollectionBlock = maxCollectionBlock > parseInt(block) ? maxCollectionBlock : parseInt(block)
+            maxCollectionBlock = maxCollectionBlock > block ? maxCollectionBlock : block
         }
-        if(maxCollectionBlock > parseInt(startBlock)) {
+        if(maxCollectionBlock > startBlock) {
             let insertionValues = [
                 id,
                 block,

@@ -26,29 +26,29 @@ export const addInvalid = async (invalidArray, startBlock) => {
         let totalInvalids = 0
 
         invalidArray = JSON.parse(invalidArray)
-
         for(let i = 0; i < invalidArray.length; i++) {
             let invalid = invalidArray[i]
-            if(parseInt(invalid.block) > parseInt(startBlock)) {
-                let {
-                    op_type,
-                    block,
-                    caller,
-                    object_id,
-                    message
-                } = invalid
-
-                let insertionValues = [
-                    i,
-                    op_type,
-                    block,
-                    caller,
-                    object_id,
-                    message
-                ]
-                totalInvalids++
-                await db_query(insert, insertionValues)
+            if(invalid.block < startBlock) {
+                continue
             }
+            let {
+                op_type,
+                block,
+                caller,
+                object_id,
+                message
+            } = invalid
+
+            let insertionValues = [
+                i,
+                op_type,
+                block,
+                caller,
+                object_id,
+                message
+            ]
+            totalInvalids++
+            await db_query(insert, insertionValues)
         }
         return totalInvalids
     } catch(error) {
