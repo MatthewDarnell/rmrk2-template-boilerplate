@@ -1,6 +1,6 @@
 import { fetchRemarks, getRemarksFromBlocks, Consolidator } from 'rmrk-tools';
 import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
-import { addRemarkArray, getRemarksUpTo } from "../store/remarks";
+import {addRemarkArray, getRemarks, getRemarksFromTo, getRemarksUpTo} from "../store/remarks";
 
 export const fetch = async (api, from, to) => {
     try {
@@ -16,13 +16,36 @@ export const fetch = async (api, from, to) => {
     }
 }
 
-export const consolidate = async (api, from, to, r) => {
+
+export const consolidate = async (api, consolidator, isInitialRun, from, to, r = null) => {
     try {
-        let remarks = [...r]
-        if(remarks.length > 0) {
-            await addRemarkArray(remarks.filter(remark => remark.block > from))
+        if(r) {
+            let remarks = [...r]
+            if(remarks.length > 0) {
+                await addRemarkArray(remarks.filter(remark => remark.block > from))
+            }
         }
-        let storedRemarks = (await getRemarksUpTo(to))
+
+        let storedRemarks
+        if(isInitialRun) {
+            storedRemarks = (await getRemarks()) || []
+        } else {
+            storedRemarks = (await getRemarksFromTo(from, to))
+        }
+
+        if(storedRemarks.length > 0) {
+            console.log(`Consolidating ${storedRemarks.length} remarks`)
+        }
+        if(storedRemarks.length < 1) {
+            return {
+                bases: {},
+                collections: {},
+                invalid: [],
+                changes: [],
+                nfts: {}
+            }
+        }
+
         storedRemarks = storedRemarks.map(remark => {
             let r: Remark = remark
             if(r.extra_ex) {
@@ -31,20 +54,21 @@ export const consolidate = async (api, from, to, r) => {
             }
             return r
         })
-        const ss58Format = parseInt(process.env.SS58ADDRESSFORMAT) || 2
 
-        const consolidator = new Consolidator(ss58Format);
-        const { bases, collections, invalid, nfts } = await consolidator.consolidate(storedRemarks);
-        //@ts-ignore
-        BigInt.prototype.toJSON = function () {
+        const { bases, collections, invalid, nfts, changes } = await consolidator.consolidate(storedRemarks);
+
+        BigInt.prototype["toJSON"] = function () {
             return this.toString();
         };
+
         return {
-            bases: JSON.stringify(bases),
-            collections: JSON.stringify(collections),
-            invalid: JSON.stringify(invalid),
-            nfts: JSON.stringify(nfts),
+            bases,
+            collections,
+            invalid,
+            nfts,
+            changes
         };
+
     } catch (error) {
         console.log(error)
     }

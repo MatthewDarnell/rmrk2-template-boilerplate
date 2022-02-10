@@ -12,6 +12,16 @@ export const getRemarks = async () => {
     }
 }
 
+export const getRemarksFromTo = async (min, max) => {
+    try {
+        const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks WHERE block > $1 AND block <= $2 ORDER BY block ASC, id ASC"
+        return (await db_get(query, [min, max]))
+    } catch(error) {
+        console.error(`Error Getting Remarks ${error}`)
+        throw new Error(error)
+    }
+}
+
 export const getRemarksUpTo = async max => {
     try {
         const query = "SELECT block, caller, interaction_type, version, remark, extra_ex FROM remarks WHERE block <= $1 ORDER BY block ASC, id ASC"

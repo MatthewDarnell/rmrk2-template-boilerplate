@@ -24,8 +24,8 @@ export const addInvalid = async (invalidArray, startBlock) => {
                         "caller = excluded.caller,  object_id = excluded.object_id, message = excluded.message;";
 
         let totalInvalids = 0
+        invalidArray = JSON.parse(JSON.stringify(invalidArray))
 
-        invalidArray = JSON.parse(invalidArray)
         for(let i = 0; i < invalidArray.length; i++) {
             let invalid = invalidArray[i]
             if(invalid.block < startBlock) {

@@ -32,7 +32,7 @@ export const addBase = async (bases, startBlock) => {
                    " ($1, $2, $3, $4, $5, $6) " +
                    " ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type," +
                    "issuer = excluded.issuer, updatedAtBlock = excluded.updatedAtBlock;";
-    const arrayBases = R.values(JSON.parse(bases))
+    const arrayBases = R.values(bases)
     let totalBases = 0
     await Promise.all(arrayBases.map(async base => {
         let maxBaseBlock = 0
@@ -72,7 +72,7 @@ export const addBase = async (bases, startBlock) => {
 const addBaseChanges = async base => {
     const insert = "INSERT INTO base_changes_2 (base_id, change_index, field, old, new, caller, block, opType) VALUES " +
                    " ($1, $2, $3, $4, $5, $6, $7, $8) " +
-                   "ON CONFLICT (base_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, " +
+                   "ON CONFLICT (base_id, change_index, block) DO UPDATE SET field = excluded.field, old = excluded.old, " +
                    " new = excluded.new, caller = excluded.caller, opType = excluded.opType;";
     let totalChanges = 0
     let { changes, id } = base

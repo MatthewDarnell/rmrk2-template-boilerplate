@@ -1,3 +1,4 @@
+
 const R = require('ramda');
 
 import {db_get, db_query} from "../database";
@@ -40,7 +41,8 @@ export const getNftChangesByNftId = async nftId => {
     const query = `SELECT nfts_2.collection, nft_changes_2.*` +
         ` FROM nft_changes_2` +
         ` INNER JOIN nfts_2 ON nfts_2.id=nft_changes_2.nft_id` +
-        ` WHERE nfts_2.id=$1`
+        ` WHERE nfts_2.id=$1` +
+        ` ORDER BY block ASC, change_index ASC`
     return (await db_get(query, [nftId]))
 }
 
@@ -60,6 +62,25 @@ export const getNftReactionsByNftId = async nftId => {
     return (await db_get(query, [nftId]))
 }
 
+export const getNftResources = async () => {
+    const query =  "select json_object_agg(t.id,\n" +
+        "    json_build_object('nft_id', t.nft_id,\n" +
+        "        'pending', t.pending,\n" +
+        "        'src', t.src,\n" +
+        "        'slot', t.slot,\n" +
+        "        'thumb', t.thumb,\n" +
+        "        'theme', t.theme,\n" +
+        "        'base', t.base,\n" +
+        "        'parts', t.parts,\n" +
+        "        'themeid', t.themeid,\n" +
+        "        'metadata', t.metadata\n" +
+        "        )) as json from\n" +
+        "                        (\n" +
+        "                           select * from nft_resources_2 \n" +
+        "                        ) as t;\n"
+    return ((await db_get(query, []))[0]['json'])
+}
+
 export const addNft = async (nftMap, from) => {
     try {
         const insert = "INSERT INTO nfts_2 (id, block, collection, symbol, priority, transferable, sn, metadata, owner, " +
@@ -71,7 +92,7 @@ export const addNft = async (nftMap, from) => {
             "properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;";
         let totalNfts = 0
 
-        let nftArray = R.values(JSON.parse(nftMap))
+        let nftArray = R.values(nftMap)
 
         await Promise.all(nftArray.map(async nft => {
             let {
@@ -87,7 +108,7 @@ export const addNft = async (nftMap, from) => {
                 rootowner,
                 forsale,
                 burned,
-                properties,//json
+                properties,
                 id,
                 changes
             } = nft
@@ -112,10 +133,9 @@ export const addNft = async (nftMap, from) => {
             }
             if(nft.hasOwnProperty('resources')) {
                 if(nft.resources.length > 0) {
-                    await addNewResource(nft.id, nft.metadata, nft.resources)
+                    await addNewResource({ nftId: id, metadata, res: nft.resources })
                 }
             }
-
 
             if(block < from) {  //don't insert nfts we already have
                 return 0
@@ -150,8 +170,6 @@ export const addNft = async (nftMap, from) => {
             ]
             await db_query(insert, insertionValues)
         }))
-
-
         return totalNfts
     } catch(error) {
         console.error(`Error Adding Nft: ${error}`)
@@ -163,7 +181,7 @@ const addNftChanges = async (nftId, changes, startBlock) => {
     try {
         const insert = "INSERT INTO nft_changes_2 (nft_id, change_index, field, old, new, caller, block, opType) VALUES " +
                      " ($1, $2, $3, $4, $5, $6, $7, $8) " +
-                     " ON CONFLICT (nft_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller," +
+                     " ON CONFLICT (nft_id, change_index, block) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller," +
                      " opType = excluded.opType;";
         let totalChanges = 0
         await Promise.all(changes.map(async (change, index) => {
@@ -251,37 +269,46 @@ const addNftReactions = async (nftId, reactions) => {
 }
 
 
-const addNewResource = async (nftId, metadata, resources) => {
+const addNewResource = async (resource) => {
     try {
         const insert = "INSERT INTO nft_resources_2 (nft_id, id, pending, src, slot, thumb, theme, base, parts, themeId, metadata) VALUES" +
                        " ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) " +
                        " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, " +
                        " thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;";
         let totalResources = 0
-        await Promise.all(resources.map(async resource => {
+        let params = ''
+        let paramOffset = 0
+        let insertionValues = []
+        const rowsToInsert = parseInt(process.env.ROWSTOINSERT) || 10
+        const { nftId, metadata, res } = resource
+        await Promise.all(res.map(async r => {
             let {
                 pending,
                 id,
                 thumb,
-            } = resource
+            } = r
 
             let parts = {}
             let base = 'NULL'
             let src = 'NULL'
             let slot = 'NULL'
 
-            if(resource.hasOwnProperty('src')) {
-                src = `'${resource.src}'`
+            if(r.hasOwnProperty('src')) {
+                src = `'${r.src}'`
             }
-            if(resource.hasOwnProperty('slot')) {
-                slot = `'${resource.slot}'`
+            if(r.hasOwnProperty('slot')) {
+                slot = `'${r.slot}'`
             }
-            if(resource.hasOwnProperty('base')) {
-                base = `'${resource.base}'`
+            if(r.hasOwnProperty('base')) {
+                base = `'${r.base}'`
             }
-            if(resource.parts) {
-                parts = resource.parts
+            if(r.parts) {
+                parts = r.parts
             }
+
+            params += `($${paramOffset+1} $${paramOffset+2} $${paramOffset+3} $${paramOffset+4} $${paramOffset+5} $${paramOffset+6} $${paramOffset+7} $${paramOffset+8} $${paramOffset+9} $${paramOffset+10} $${paramOffset+11}),`
+            paramOffset += 11
+
             totalResources++
             let insertionValues = [
                 nftId,

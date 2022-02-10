@@ -66,7 +66,7 @@ const addCollectionChanges = async (collection) => {
     try {
         const insert = "INSERT INTO collection_changes_2 (collection_id, change_index, field, old, new, caller, block, opType) VALUES " +
                        " ($1, $2, $3, $4, $5, $6, $7, $8) " +
-                       " ON CONFLICT (collection_id, change_index) DO UPDATE SET field = excluded.field, old = excluded.old, " +
+                       " ON CONFLICT (collection_id, change_index, block) DO UPDATE SET field = excluded.field, old = excluded.old, " +
                        "new = excluded.new, caller = excluded.caller, opType = excluded.opType;";
 
         let totalChanges = 0

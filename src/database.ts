@@ -3,10 +3,10 @@ const { Pool, Client } = require('pg')
 export const getDbString = () => {
     return {
         user: process.env.PGUSER,
-            host: process.env.PGHOST,
+        host: process.env.PGHOST,
         database: process.env.DB,
         password: process.env.PGPASSWORD,
-        port: process.env.PGPORT,
+        port: process.env.PGPORT
     }
 }
 const pool = new Pool(getDbString())

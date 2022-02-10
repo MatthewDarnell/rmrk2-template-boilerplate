@@ -6,7 +6,7 @@ const fs = require('fs')
 import { Client } from 'pg'
 
 
-import {setLastBlockScanned} from "../store/last_block";
+import {getLastBlockScanned, setLastBlockScanned} from "../store/last_block";
 import { addRemarkArray } from "../store/remarks";
 import {getConnection} from "../scanner/connection";
 import {consolidate} from "../api/api";
@@ -14,6 +14,7 @@ import {addInvalid} from "../store/invalid";
 import {addBase} from "../store/base";
 import {addCollection} from "../store/collection";
 import {addNft} from "../store/nft";
+import {Consolidator} from "rmrk-tools";
 
 const unConsolidated2Db = async () => {
     try {
@@ -99,24 +100,34 @@ const unConsolidated2Db = async () => {
             }
         })
 
-        console.log('Setting Last Block: ', maxBlock)
-        await setLastBlockScanned(maxBlock)
 
         console.log('Done importing Unconsolidated')
         console.log('Consolidating. This could take a while')
 
         let conn = await getConnection(process.env.WSURL)
 
-        let { invalid, bases, nfts, collections } = await consolidate(conn, 0, maxBlock, []);
+
+        const consolidator = new Consolidator(parseInt(process.env.SS58ADDRESSFORMAT), null, false, false);
+
+
+        let { invalid, bases, nfts, collections } = await consolidate(conn, consolidator, true,0, maxBlock, []);
+
+        console.log('Setting Last Block: ', maxBlock)
+        await setLastBlockScanned(maxBlock)
+
 
         console.log('Adding Invalids')
         await addInvalid(invalid, 0)
+
         console.log('Adding Bases')
         await addBase(bases, 0)
+
         console.log('Adding Collections')
-        await addCollection(JSON.parse(collections), 0)
+        await addCollection(collections, 0)
+
         console.log('Adding Nfts')
         await addNft(nfts, 0)
+
         await client.end()
     } catch(error) {
         console.error(`Error Converting Consolidated Rmrk To Db!: ${error}`)

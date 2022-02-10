@@ -62,7 +62,7 @@ const consolidated2Db = async () => {
             Nfts
         */
         console.log('Adding Nfts')
-        await addNft(JSON.stringify(nfts))
+        await addNft(JSON.stringify(nfts), 0)
 
         /*
             Invalid
@@ -74,7 +74,7 @@ const consolidated2Db = async () => {
             LastBlock
         */
         console.log('Setting Last Block')
-        await setLastBlockScanned(parseInt(lastBlock))
+        await setLastBlockScanned(parseInt(lastBlock), nfts, bases, collections, invalid)
         await client.end()
         console.log('Done!')
     } catch(error) {
