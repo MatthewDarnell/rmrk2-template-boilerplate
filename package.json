@@ -15,13 +15,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@polkadot/api": "^6.12.1",
-    "@polkadot/keyring": "^8.2.2",
-    "@types/node": "^16.9.6",
+    "@polkadot/api": "^7.8.1",
+    "@polkadot/keyring": "^8.4.1",
+    "@types/node": "^17.0.18",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.2",
     "nanoid": "^3.1.25",
+    "node-fetch": "2.6.1",
     "object-hash": "^2.2.0",
     "p-limit": "^3.1.0",
     "pg": "^8.7.1",
@@ -31,7 +32,8 @@
     "rmrk-tools": "^2.0.30",
     "socket.io": "^4.4.0",
     "ts-node": "^10.1.0",
-    "typescript": "^4.3.5"
+    "typescript": "^4.3.5",
+    "uniq": "^1.0.1"
   },
   "devDependencies": {
     "browser-resolve": "^2.0.0",

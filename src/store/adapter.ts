@@ -1,11 +1,34 @@
 import { Base, Collection, NFT } from 'rmrk-tools';
 import { IConsolidatorAdapter } from 'rmrk-tools/dist/tools/consolidator/adapters/types';
+import { IStorageProvider } from "rmrk-tools/dist/listener";
 import {
     BaseConsolidated,
     CollectionConsolidated,
     NFTConsolidated,
 } from 'rmrk-tools/dist/tools/consolidator/consolidator';
 import { AcceptEntityType } from 'rmrk-tools/dist/classes/accept';
+import {getLastBlockScanned, setLastBlockScanned} from "./last_block";
+
+
+
+//https://github.com/rmrk-team/rmrk-tools/blob/c1aeea53582eda0588e2b46ab96988b00f475370/cli/run-listener.ts#L12
+export class StorageProvider implements IStorageProvider {
+    readonly storageKey: string = "latestBlock";
+    public latestBlock = 0;
+
+    constructor(blockNum = 0) {
+
+    }
+
+    public set = async (latestBlock: number) => {
+        await setLastBlockScanned(latestBlock)
+    };
+
+    public get = async () => {
+        return await getLastBlockScanned()
+    };
+}
+
 
 export class InMemoryAdapter implements IConsolidatorAdapter {
     public nfts: Record<string, NFTConsolidated>;
@@ -48,7 +71,6 @@ export class InMemoryAdapter implements IConsolidatorAdapter {
     }
 
     public async updateNFTList(nft: NFT, consolidatedNFT: NFTConsolidated) {
-        console.log(`Updating Nft List: ${nft.getId()}`)
         this.nfts[consolidatedNFT.id] = {
             ...this.nfts[consolidatedNFT.id],
             forsale: nft?.forsale,

@@ -276,10 +276,6 @@ const addNewResource = async (resource) => {
                        " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, " +
                        " thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;";
         let totalResources = 0
-        let params = ''
-        let paramOffset = 0
-        let insertionValues = []
-        const rowsToInsert = parseInt(process.env.ROWSTOINSERT) || 10
         const { nftId, metadata, res } = resource
         await Promise.all(res.map(async r => {
             let {
@@ -305,9 +301,6 @@ const addNewResource = async (resource) => {
             if(r.parts) {
                 parts = r.parts
             }
-
-            params += `($${paramOffset+1} $${paramOffset+2} $${paramOffset+3} $${paramOffset+4} $${paramOffset+5} $${paramOffset+6} $${paramOffset+7} $${paramOffset+8} $${paramOffset+9} $${paramOffset+10} $${paramOffset+11}),`
-            paramOffset += 11
 
             totalResources++
             let insertionValues = [

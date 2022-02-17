@@ -1,16 +1,18 @@
 import createSubscriber from "pg-listen"
 import { getDbString } from "../database"
-
-import {emitSubscriptionEvent, getApiFromTableName} from "./socket"
+import { emitSubscriptionEvent, getApiFromTableName } from "./socket"
 
 
 // Accepts the same connection config object that the "pg" package would take
-export const apiListenerConnect = async () => {
+export const startDbListener = async () => {
     const subscriber = createSubscriber(getDbString())
     console.log('Listening for Database Inserts')
     subscriber.notifications.on("insert_notify", async payload => {
         // Payload as passed to subscriber.notify() (see below)
-        await emitSubscriptionEvent(getApiFromTableName(payload.tbl), payload.row)
+        await emitSubscriptionEvent(
+            getApiFromTableName(payload.tbl),
+            payload.row
+        )
     })
 
     subscriber.events.on("error", (error) => {

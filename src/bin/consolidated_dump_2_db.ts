@@ -74,7 +74,7 @@ const consolidated2Db = async () => {
             LastBlock
         */
         console.log('Setting Last Block')
-        await setLastBlockScanned(parseInt(lastBlock), nfts, bases, collections, invalid)
+        await setLastBlockScanned(parseInt(lastBlock))
         await client.end()
         console.log('Done!')
     } catch(error) {

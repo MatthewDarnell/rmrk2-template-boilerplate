@@ -1,95 +1,103 @@
-import {getLastBlockScanned, setLastBlockScanned} from "../store/last_block";
-import {Consolidator, getLatestFinalizedBlock} from 'rmrk-tools';
-import { fetch, consolidate } from '../api/api'
+import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
+import { Consolidator, RemarkListener } from 'rmrk-tools';
 import { addNft } from "../store/nft"
 import { addCollection } from "../store/collection"
-import {addBase } from "../store/base"
-import { addInvalid} from "../store/invalid"
-import {InMemoryAdapter} from "../store/adapter";
-
-export const initBlockScanner = async (conn, nfts = {}, collections = {}, bases = {}) => {
+import { addBase } from "../store/base"
+import { addInvalid } from "../store/invalid"
+import { InMemoryAdapter, StorageProvider } from "../store/adapter";
+import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
+import uniq from 'uniq'
+import fetch from 'node-fetch'
+import { getConnection } from "./connection";
+const initialSeed = async () => {
     try {
-        const adapter = new InMemoryAdapter(nfts, collections, bases)
-        const consolidator = new Consolidator(parseInt(process.env.SS58ADDRESSFORMAT), adapter, false, true);
-        await consolidate(conn, consolidator, true, 0, 0);
-        return {
-            adapter,
-            consolidator
+        console.log('Fetching Latest RMRK Dump...')
+        const response = await fetch('https://gateway.pinata.cloud/ipns/precon-rmrk2.rmrk.link');
+        // @ts-ignore
+        const { lastBlock, nfts, collections, bases } = await response.json();
+        console.log('...Done')
+
+        let dbLastKnownBlock = parseInt(await getLastBlockScanned())
+        if(dbLastKnownBlock < lastBlock) {
+            console.log('Inserting Latest RMRK Dump Into DB...')
+            await addBase(bases, dbLastKnownBlock)
+            await addCollection(collections, dbLastKnownBlock)
+            await addNft(nfts, dbLastKnownBlock)
+            await setLastBlockScanned(lastBlock)
+            console.log('...Done')
         }
-    } catch (err) {
-        console.error(`Error initializing Block Scanner: ${err}`)
+
+        return { lastBlock: lastBlock + 1, nfts, collections, bases };
+    } catch(error) {
+        console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
+        process.exit(-1)
     }
 }
 
-export const startBlockScanner = async (conn, adapter, consolidator) => {
-    try {
-        let blockScannerMaxChunk = parseInt(process.env.BLOCKSCANNERMAXCHUNK) || 100
-        let block = await getLastBlockScanned()
-        let finalizedBlock = await getLatestFinalizedBlock(conn)
-        if(blockScannerMaxChunk < 0) {
-            blockScannerMaxChunk = finalizedBlock
+export const startBlockScanner = async () => {
+    const { lastBlock, nfts, collections, bases} = await initialSeed()
+    console.log(`Starting RMRK Listener from block.(${lastBlock})...`)
+    const adapter = new InMemoryAdapter(nfts, collections, bases);
+    const storageProvider = new StorageProvider(lastBlock);
+    const RMRK_PREFIXES = ['0x726d726b', '0x524d524b'];
+
+    const api = await getConnection(process.env.WSURL);
+
+    const consolidateFunction = async (remarks: Remark[]) => {
+        //const rmrkBlocks = uniq(remarks.map((r) => r.block));
+        const consolidator = new Consolidator(2, adapter, true, true);
+        const result = await consolidator.consolidate(remarks);
+        const interactionChanges = result.changes || [];
+        // SYNC to DB interactionChanges
+
+        const affectedIds = interactionChanges?.length
+            ? interactionChanges.map((c) => Object.values(c)).flat()
+            : [];
+
+        let affectedNfts = {},
+            affectedCollections = {},
+            affectedBases = {},
+            affectedInvalids = []
+
+
+        let keysToKeep = Object.keys(nfts)
+        keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
+
+        for(const key of keysToKeep) {
+            affectedNfts[key] = nfts[key]
         }
-        if(finalizedBlock > block) {
-            let to = finalizedBlock - block > blockScannerMaxChunk ? block + blockScannerMaxChunk : finalizedBlock
 
-            console.log(`Scanning ${to-block} blocks. (${block}  --->  ${to})`)
-            let remarks = await fetch(conn, block, to)
-            remarks = [...remarks]
-
-            let { invalid, bases, nfts, collections, changes } = await consolidate(conn, consolidator, false, block, to, remarks);
-
-            const interactionChanges = changes
-            const affectedIds = interactionChanges?.length
-                ? interactionChanges.map((c) => Object.values(c)).flat()
-                : [];
-
-            let affectedNfts = {},
-                affectedCollections = {},
-                affectedBases = {},
-                affectedInvalids = []
-
-
-            let keysToKeep = Object.keys(nfts)
-            keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
-
-            for(const key of keysToKeep) {
-                affectedNfts[key] = nfts[key]
-            }
-
-            keysToKeep = Object.keys(collections)
-            keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
-            for(const key of keysToKeep) {
-                affectedCollections[key] = collections[key]
-            }
-
-            keysToKeep = Object.keys(bases)
-            keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
-            for(const key of keysToKeep) {
-                affectedBases[key] = bases[key]
-            }
-
-            /*
-            affectedInvalids = invalid.filter(inv => {
-                for (const affectedId of affectedIds) {
-                    if(inv.hasOwnProperty(affectedId)) {
-                        return true
-                    }
-                }
-                return false
-            })
-             */
-
-
-            if(changes.length > 0) {
-                console.log(`Inserting ${changes.length} changes`)
-                //await addInvalid(affectedInvalids, block)
-                await addBase(affectedBases, block)
-                await addCollection(affectedCollections, block)
-                await addNft(affectedNfts, block)
-            }
-            await setLastBlockScanned(to)
+        keysToKeep = Object.keys(collections)
+        keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
+        for(const key of keysToKeep) {
+            affectedCollections[key] = collections[key]
         }
-    } catch(error) {
-        console.error(`Error in startBlockScanner - ${error}`)
-    }
+
+        keysToKeep = Object.keys(bases)
+        keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
+        for(const key of keysToKeep) {
+            affectedBases[key] = bases[key]
+        }
+
+        let lastKnownBlock = parseInt(await getLastBlockScanned())
+        console.log(`Scanned Blocks ${lastKnownBlock} ---> ${lastBlock}`)
+        //await addInvalid(affectedInvalids, block)
+        await addBase(affectedBases, lastKnownBlock)
+        await addCollection(affectedCollections, lastKnownBlock)
+        await addNft(affectedNfts, lastKnownBlock)
+        await setLastBlockScanned(lastBlock)
+
+        return result;
+    };
+
+    const listener = new RemarkListener({
+        polkadotApi: api,
+        prefixes: RMRK_PREFIXES,
+        consolidateFunction,
+        storageProvider,
+    });
+
+    const subscriber = listener.initialiseObservable();
+    subscriber.subscribe();
+    console.log('...RMRK Listener Subscribed and Listening')
 }
