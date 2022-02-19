@@ -116,7 +116,6 @@ export const addNft = async (nftMap, from) => {
 
             if(nft.hasOwnProperty('children')) {
                 if(nft.children.length > 0) {
-                    await db_query("DELETE FROM nft_children_2;", "")
                     await addNftChildren(nft.id, nft.children)
                 }
             }
@@ -236,6 +235,7 @@ const addNftChildren = async (nftId, children) => {
                 equipped
             ]
             totalChildren++
+            await db_query("DELETE FROM nft_children_2 WHERE id=$1", [id])
             await db_query(insert, insertionValues)
         }))
         return totalChildren
