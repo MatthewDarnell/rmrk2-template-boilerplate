@@ -222,6 +222,9 @@ const addNftChildren = async (nftId, children) => {
         let insert = "INSERT INTO nft_children_2 (nft_id, id, pending, equipped) VALUES ($1, $2, $3, $4) " +
                      " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;";
         let totalChildren = 0
+
+        await db_query("DELETE FROM nft_children_2 WHERE nft_id=$1", [nftId])
+
         await Promise.all(children.map(async child => {
             let {
                 id,
@@ -235,7 +238,6 @@ const addNftChildren = async (nftId, children) => {
                 equipped
             ]
             totalChildren++
-            await db_query("DELETE FROM nft_children_2 WHERE id=$1", [id])
             await db_query(insert, insertionValues)
         }))
         return totalChildren
