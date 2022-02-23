@@ -54,29 +54,33 @@ export const startBlockScanner = async () => {
             ? interactionChanges.map((c) => Object.values(c)).flat()
             : [];
 
+        const updatedNfts = adapter.getAllNFTs()
+        const updatedBases = adapter.getAllBases()
+        const updatedColls = adapter.getAllCollections()
+
         let affectedNfts = {},
             affectedCollections = {},
             affectedBases = {},
             affectedInvalids = []
 
 
-        let keysToKeep = Object.keys(nfts)
+        let keysToKeep = Object.keys(updatedNfts)
         keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
 
         for(const key of keysToKeep) {
-            affectedNfts[key] = nfts[key]
+            affectedNfts[key] = updatedNfts[key]
         }
 
-        keysToKeep = Object.keys(collections)
+        keysToKeep = Object.keys(updatedColls)
         keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
         for(const key of keysToKeep) {
-            affectedCollections[key] = collections[key]
+            affectedCollections[key] = updatedColls[key]
         }
 
-        keysToKeep = Object.keys(bases)
+        keysToKeep = Object.keys(updatedBases)
         keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
         for(const key of keysToKeep) {
-            affectedBases[key] = bases[key]
+            affectedBases[key] = updatedBases[key]
         }
 
         let lastKnownBlock = parseInt(await getLastBlockScanned())
