@@ -1,6 +1,6 @@
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { Consolidator, RemarkListener } from 'rmrk-tools';
-import { addNft } from "../store/nft"
+import {addNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
 import { addInvalid } from "../store/invalid"
@@ -69,6 +69,18 @@ export const startBlockScanner = async () => {
 
         for(const key of keysToKeep) {
             affectedNfts[key] = updatedNfts[key]
+            let ownerId = updatedNfts[key].owner
+            if(ownerId) {
+                if(updatedNfts.hasOwnProperty(ownerId)) {
+                    affectedNfts[ownerId] = updatedNfts[ownerId]
+                }
+                let lastKnownOwner = await getNftIdsClaimingChild(key)
+                if(lastKnownOwner) {
+                    if(lastKnownOwner !== ownerId) {
+                        await removeOwner(key, lastKnownOwner)
+                    }
+                }
+            }
         }
 
         keysToKeep = Object.keys(updatedColls)
