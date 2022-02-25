@@ -54,9 +54,9 @@ export const startBlockScanner = async () => {
             ? interactionChanges.map((c) => Object.values(c)).flat()
             : [];
 
-        const updatedNfts = adapter.getAllNFTs()
-        const updatedBases = adapter.getAllBases()
-        const updatedColls = adapter.getAllCollections()
+        let updatedNfts = result.nfts
+        let updatedBases = result.bases
+        let updatedColls = result.collections
 
         let affectedNfts = {},
             affectedCollections = {},
