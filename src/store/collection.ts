@@ -18,7 +18,7 @@ export const getCollectionChangesById = async id => {
     return (await db_get(query, [id]))
 }
 
-export const addCollection = async (collections, startBlock) => {
+export const addCollection = async collections => {
     const insert = "INSERT INTO collections_2 (id, block, max, issuer, symbol, metadata, updatedAtBlock) VALUES " +
                    " ($1, $2, $3, $4, $5, $6, $7) " +
                    " ON CONFLICT (id) DO UPDATE SET block = excluded.block, max = excluded.max, issuer = excluded.issuer, " +
@@ -45,19 +45,18 @@ export const addCollection = async (collections, startBlock) => {
         } else {
             maxCollectionBlock = maxCollectionBlock > block ? maxCollectionBlock : block
         }
-        if(maxCollectionBlock > startBlock) {
-            let insertionValues = [
-                id,
-                block,
-                max,
-                issuer,
-                symbol,
-                metadata,
-                maxCollectionBlock
-            ]
-            totalCollections++
-            await db_query(insert, insertionValues)
-        }
+        let insertionValues = [
+            id,
+            block,
+            max,
+            issuer,
+            symbol,
+            metadata,
+            maxCollectionBlock
+        ]
+        totalCollections++
+        await db_query(insert, insertionValues)
+
     }))
     return totalCollections
 }

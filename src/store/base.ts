@@ -27,7 +27,7 @@ export const getBaseThemesById = async id => {
 }
 
 
-export const addBase = async (bases, startBlock) => {
+export const addBase = async bases => {
     const insert = "INSERT INTO bases_2 (id, block, symbol, type, issuer, updatedAtBlock) VALUES " +
                    " ($1, $2, $3, $4, $5, $6) " +
                    " ON CONFLICT (id) DO UPDATE SET block = excluded.block, symbol = excluded.symbol, type = excluded.type," +
@@ -54,18 +54,16 @@ export const addBase = async (bases, startBlock) => {
         } else {
             maxBaseBlock = maxBaseBlock > parseInt(block) ? maxBaseBlock : parseInt(block)
         }
-        if(maxBaseBlock > parseInt(startBlock)) {
-            let insertionValues = [
-                id,
-                block,
-                symbol,
-                type,
-                issuer,
-                maxBaseBlock
-            ]
-            totalBases++
-            await db_query(insert, insertionValues)
-        }
+        let insertionValues = [
+            id,
+            block,
+            symbol,
+            type,
+            issuer,
+            maxBaseBlock
+        ]
+        totalBases++
+        await db_query(insert, insertionValues)
     }))
     return totalBases
 }

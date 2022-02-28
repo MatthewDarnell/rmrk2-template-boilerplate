@@ -20,8 +20,8 @@ const initialSeed = async () => {
         let dbLastKnownBlock = parseInt(await getLastBlockScanned())
         if(dbLastKnownBlock < lastBlock) {
             console.log('Inserting Latest RMRK Dump Into DB...')
-            await addBase(bases, dbLastKnownBlock)
-            await addCollection(collections, dbLastKnownBlock)
+            await addBase(bases)
+            await addCollection(collections)
             await addNft(nfts, dbLastKnownBlock)
             await setLastBlockScanned(lastBlock)
             console.log('...Done')
@@ -98,11 +98,10 @@ export const startBlockScanner = async () => {
         let lastKnownBlock = parseInt(await getLastBlockScanned())
         console.log(`Scanned Blocks ${lastKnownBlock} ---> ${lastBlock}`)
         //await addInvalid(affectedInvalids, block)
-        await addBase(affectedBases, lastKnownBlock)
-        await addCollection(affectedCollections, lastKnownBlock)
+        await addBase(affectedBases)
+        await addCollection(affectedCollections)
         await addNft(affectedNfts, lastKnownBlock)
         await setLastBlockScanned(lastBlock)
-
         return result;
     };
 

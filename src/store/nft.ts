@@ -151,10 +151,6 @@ export const addNft = async (nftMap, from) => {
                 }
             }
 
-            if(block < from) {  //don't insert nfts we already have
-                return 0
-            }
-
             let maxBlock = parseInt(block)
             if(changes.length > 0) {
                 changes.forEach(change => {
