@@ -35,7 +35,7 @@ const initialSeed = async () => {
 }
 
 export const startBlockScanner = async () => {
-    const { lastBlock, nfts, collections, bases} = await initialSeed()
+    let { lastBlock, nfts, collections, bases} = await initialSeed()
     console.log(`Starting RMRK Listener from block.(${lastBlock})...`)
     const adapter = new InMemoryAdapter(nfts, collections, bases);
     const storageProvider = new StorageProvider(lastBlock);
@@ -44,7 +44,8 @@ export const startBlockScanner = async () => {
     const api = await getConnection(process.env.WSURL);
 
     const consolidateFunction = async (remarks: Remark[]) => {
-        //const rmrkBlocks = uniq(remarks.map((r) => r.block));
+        const rmrkBlocks = uniq(remarks.map((r) => r.block));
+        lastBlock = Math.max(...rmrkBlocks)
         const consolidator = new Consolidator(2, adapter, true, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
@@ -101,7 +102,9 @@ export const startBlockScanner = async () => {
         await addBase(affectedBases)
         await addCollection(affectedCollections)
         await addNft(affectedNfts, lastKnownBlock)
-        await setLastBlockScanned(lastBlock)
+        if(lastBlock > 0) {
+            await setLastBlockScanned(lastBlock)
+        }
         return result;
     };
 
