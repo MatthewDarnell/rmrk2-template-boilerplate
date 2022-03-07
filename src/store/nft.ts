@@ -171,6 +171,7 @@ export const addNft = async (nftMap, from) => {
                     const data = await response.json();
                     metadata = JSON.stringify(data)
                 } catch(error) {
+
                     console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
                 }
             }
