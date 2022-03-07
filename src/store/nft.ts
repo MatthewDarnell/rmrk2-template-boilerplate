@@ -165,12 +165,14 @@ export const addNft = async (nftMap, from) => {
 
             let metadataArray = metadata.split('/')
             if(metadataArray[0] === 'ipfs:') {
-                metadata = metadataArray.pop()
-                const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
-                const data = await response.json();
-                console.log(data);
-                metadata = JSON.stringify(data)
-                console.log(metadata)
+                try {
+                    metadata = metadataArray.pop()
+                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
+                    const data = await response.json();
+                    metadata = JSON.stringify(data)
+                } catch(error) {
+                    console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
+                }
             }
             let insertionValues = [
                 id,
