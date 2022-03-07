@@ -1,4 +1,4 @@
-
+import fetch from 'node-fetch'
 const R = require('ramda');
 
 import {db_get, db_query} from "../database";
@@ -108,6 +108,8 @@ export const addNft = async (nftMap, from) => {
         let totalNfts = 0
 
         let nftArray = R.values(nftMap)
+            .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+
 
         await Promise.all(nftArray.map(async nft => {
             let {
@@ -161,6 +163,17 @@ export const addNft = async (nftMap, from) => {
             }
             totalNfts++
 
+            let metadataArray = metadata.split('/')
+            if(metadataArray[0] === 'ipfs:') {
+                try {
+                    metadata = metadataArray.pop()
+                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
+                    const data = await response.json();
+                    metadata = JSON.stringify(data)
+                } catch(error) {
+                    console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
+                }
+            }
             let insertionValues = [
                 id,
                 block,
