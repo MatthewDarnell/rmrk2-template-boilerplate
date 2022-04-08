@@ -10,7 +10,7 @@ export const getNftsByCollection = async collectionId => {
 }
 
 export const getNftsByCollectionForSale = async collectionId => {
-    const query = `SELECT * FROM nfts_2 WHERE collection=$1 AND forsale=1`
+    const query = `SELECT * FROM nfts_2 WHERE collection=$1 AND forsale!='0'`
     return (await db_get(query, [collectionId]))
 }
 
