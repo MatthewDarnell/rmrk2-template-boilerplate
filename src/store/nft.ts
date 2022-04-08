@@ -9,6 +9,11 @@ export const getNftsByCollection = async collectionId => {
     return (await db_get(query, [collectionId]))
 }
 
+export const getNftsByCollectionForSale = async collectionId => {
+    const query = `SELECT * FROM nfts_2 WHERE collection=$1 AND forsale=1`
+    return (await db_get(query, [collectionId]))
+}
+
 export const removeOwner = async (childId, ownerId) => {
     const query = `DELETE FROM nft_children_2 WHERE id=$1 AND nft_id=$2`
     return await db_query(query, [childId, ownerId])
