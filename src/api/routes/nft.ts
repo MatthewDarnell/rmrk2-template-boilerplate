@@ -3,7 +3,7 @@ import {
     getNftsByCollection,
     getNft,
     getNftChildrenByNftId,
-    getNftChangesByNftId, getNftResourcesByNftId, getNftReactionsByNftId
+    getNftChangesByNftId, getNftResourcesByNftId, getNftReactionsByNftId, getNftsByCollectionForSale
 } from "../../store/nft";
 
 
@@ -32,11 +32,19 @@ export const setupNftRoutes = app => {
         try {
             const collection = req.params.collection
             const nft = await getNftsByCollection(collection)
-            //console.log(nft)
-            console.log(nft.length)
             res.status(200).send(JSON.stringify(nft))
         } catch (error) {
             res.status(500).send(`Error getting nft by id ${error}`)
+        }
+    })
+
+    app.get('/get_nfts_for_sale_in_collection/:collection', async (req, res) => {
+        try {
+            const collection = req.params.collection
+            const nfts = await getNftsByCollectionForSale(collection)
+            res.status(200).send(JSON.stringify(nfts))
+        } catch (error) {
+            res.status(500).send(`Error getting nft collection for sale by id ${error}`)
         }
     })
 
