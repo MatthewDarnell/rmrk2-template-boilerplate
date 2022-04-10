@@ -1,6 +1,6 @@
 require('dotenv').config()
 import { db_get } from "./database";
-import { startBlockScanner } from "./scanner/blockScanner";
+import {startBlockScanner, startPendingBuyCanceller} from "./scanner/blockScanner";
 import { startSocketApi } from "./api/socket"
 import { startDbListener } from "./api/listener";
 db_get(`SELECT NOW()`, "").then(async time => {
@@ -10,6 +10,7 @@ db_get(`SELECT NOW()`, "").then(async time => {
         startSocketApi()
         await startDbListener()
         await startBlockScanner()
+        await startPendingBuyCanceller()
     } catch(error) {
         console.error(`Error Starting rmrk-listener: ${error}`)
         process.exit(0)
