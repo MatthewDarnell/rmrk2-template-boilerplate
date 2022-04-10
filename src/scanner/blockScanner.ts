@@ -67,10 +67,6 @@ const watchBuyOps = rmrks => {
             continue;
         }
         let nftId = remark[3]
-        let price = BigInt(remark[4])
-        if(price === BigInt(0)) {    //cancel operation
-            continue;
-        }
         PendingBuyNfts[nftId] = currentTime
     }
 
