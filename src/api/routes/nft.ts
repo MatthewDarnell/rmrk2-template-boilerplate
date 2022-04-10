@@ -6,6 +6,7 @@ import {
     getNftChangesByNftId, getNftResourcesByNftId, getNftReactionsByNftId, getNftsByCollectionForSale
 } from "../../store/nft";
 
+import {PendingBuyNfts} from "../../scanner/blockScanner";
 
 export const setupNftRoutes = app => {
     app.get('/get_nft_by_id/:id', async (req, res) => {
@@ -57,4 +58,18 @@ export const setupNftRoutes = app => {
             res.status(500).send(`Error getting nfts owned by ${error}`)
         }
     })
+
+    app.get('/is_nft_being_bought/:nftId', async (req, res) => {
+        try {
+            const id = req.params.nftId
+            let retVal = false;
+            if(PendingBuyNfts.hasOwnProperty(id)) {
+                retVal = true
+            }
+            res.status(200).send(JSON.stringify(retVal))
+        } catch (error) {
+            res.status(500).send(`Error getting nfts being bought by ${error}`)
+        }
+    })
+
 }

@@ -37,9 +37,58 @@ const initialSeed = async () => {
     }
 }
 
-export const watchBuyOps = rmrks => {
+
+export let PendingBuyNfts = {}
+export const startPendingBuyCanceller = async () => {
+    console.log('Starting Pending Buy Canceller')
+    setInterval(() => {
+        let currentTime = Date.now()
+        for(const nftId of Object.keys(PendingBuyNfts)) {
+            if(currentTime - PendingBuyNfts[nftId] > parseInt(process.env.PENDINGBUYCANCELLERINTERVAL)) {
+                delete PendingBuyNfts[nftId]
+            }
+        }
+    },
+        parseInt(process.env.PENDINGBUYCANCELLERTIMEOUT)
+    )
+}
+
+
+const watchBuyOps = rmrks => {
   console.log('watch buy ops')
     console.log(rmrks)
+
+    const buyOps = rmrks.filter(rmrk => rmrk.interaction_type === 'BUY')
+    let currentTime = Date.now()
+    for(const rmrk of buyOps) {
+        let remark = rmrk.remark
+            .split(':')
+        if(remark.length < 5) {
+            continue;
+        }
+        let nftId = remark[3]
+        let price = BigInt(remark[4])
+        if(price === BigInt(0)) {    //cancel operation
+            continue;
+        }
+        PendingBuyNfts[nftId] = currentTime
+    }
+
+
+
+    /*
+    watch buy ops
+[
+  {
+    block: 574,
+    caller: 'HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F',
+    interaction_type: 'LIST',
+    version: '2.0.0',
+    remark: 'RMRK::LIST::2.0.0::34-d43593c715a56da27d-VOTS-vot_sword_5-00000005::0',
+    extra_ex: undefined
+  }
+]
+     */
 }
 
 export const startBlockScanner = async () => {
@@ -129,10 +178,10 @@ export const startBlockScanner = async () => {
     });
 
     const subscriber = listener.initialiseObservable();
-    const unfinilizedSubscriber = listener.initialiseObservableUnfinalised();
+    const unfinalizedSubscriber = listener.initialiseObservableUnfinalised();
 
     subscriber.subscribe();
-    unfinilizedSubscriber.subscribe((rmrks) => watchBuyOps(rmrks) );
+    unfinalizedSubscriber.subscribe((rmrks) => watchBuyOps(rmrks) );
 
     console.log('...RMRK Listener Subscribed and Listening')
 }
