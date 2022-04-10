@@ -11,6 +11,8 @@ import fetch from 'node-fetch'
 import { getConnection } from "./connection";
 const initialSeed = async () => {
     try {
+        return {lastBlock: 0, nfts: {}, collections: {}, bases: {}}
+        /*
         console.log('Fetching Latest RMRK Dump...')
         const response = await fetch('https://gateway.pinata.cloud/ipns/precon-rmrk2.rmrk.link');
         // @ts-ignore
@@ -28,10 +30,16 @@ const initialSeed = async () => {
         }
 
         return { lastBlock: lastBlock + 1, nfts, collections, bases };
+        */
     } catch(error) {
         console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
         process.exit(-1)
     }
+}
+
+export const watchBuyOps = rmrks => {
+  console.log('watch buy ops')
+    console.log(rmrks)
 }
 
 export const startBlockScanner = async () => {
@@ -45,7 +53,11 @@ export const startBlockScanner = async () => {
 
     const consolidateFunction = async (remarks: Remark[]) => {
         const rmrkBlocks = uniq(remarks.map((r) => r.block));
-        lastBlock = Math.max(...rmrkBlocks)
+        if(rmrkBlocks.length > 0) {
+            lastBlock = Math.max(...rmrkBlocks)
+        }
+        console.log('consolidate called on blocks ')
+        console.log(rmrkBlocks)
         const consolidator = new Consolidator(2, adapter, true, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
@@ -54,6 +66,7 @@ export const startBlockScanner = async () => {
         const affectedIds = interactionChanges?.length
             ? interactionChanges.map((c) => Object.values(c)).flat()
             : [];
+        console.log(affectedIds)
 
         let updatedNfts = result.nfts
         let updatedBases = result.bases
@@ -116,6 +129,10 @@ export const startBlockScanner = async () => {
     });
 
     const subscriber = listener.initialiseObservable();
+    const unfinilizedSubscriber = listener.initialiseObservableUnfinalised();
+
     subscriber.subscribe();
+    unfinilizedSubscriber.subscribe((rmrks) => watchBuyOps(rmrks) );
+
     console.log('...RMRK Listener Subscribed and Listening')
 }
