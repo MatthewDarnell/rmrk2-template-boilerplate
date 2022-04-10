@@ -62,7 +62,7 @@ const watchBuyOps = rmrks => {
     let currentTime = Date.now()
     for(const rmrk of buyOps) {
         let remark = rmrk.remark
-            .split(':')
+            .split('::')
         if(remark.length < 5) {
             continue;
         }
