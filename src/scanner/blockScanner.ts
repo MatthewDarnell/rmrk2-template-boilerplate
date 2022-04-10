@@ -37,6 +37,11 @@ const initialSeed = async () => {
     }
 }
 
+export const watchBuyOps = rmrks => {
+  console.log('watch buy ops')
+    console.log(rmrks)
+}
+
 export const startBlockScanner = async () => {
     let { lastBlock, nfts, collections, bases} = await initialSeed()
     console.log(`Starting RMRK Listener from block.(${lastBlock})...`)
@@ -51,6 +56,8 @@ export const startBlockScanner = async () => {
         if(rmrkBlocks.length > 0) {
             lastBlock = Math.max(...rmrkBlocks)
         }
+        console.log('consolidate called on blocks ')
+        console.log(rmrkBlocks)
         const consolidator = new Consolidator(2, adapter, true, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
@@ -122,6 +129,10 @@ export const startBlockScanner = async () => {
     });
 
     const subscriber = listener.initialiseObservable();
+    const unfinilizedSubscriber = listener.initialiseObservableUnfinalised();
+
     subscriber.subscribe();
+    unfinilizedSubscriber.subscribe((rmrks) => watchBuyOps(rmrks) );
+
     console.log('...RMRK Listener Subscribed and Listening')
 }
