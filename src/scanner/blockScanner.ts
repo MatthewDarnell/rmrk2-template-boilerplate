@@ -69,7 +69,7 @@ const watchBuyOps = async rmrks => {
     for(const rmrk of buyOps) {
         let remark = rmrk.remark
             .split('::')
-        if(remark.length < 5) {
+        if(remark.length < 4) {
             continue;
         }
         if(!rmrk.extra_ex) {
