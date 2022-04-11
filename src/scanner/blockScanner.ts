@@ -1,6 +1,6 @@
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { Consolidator, RemarkListener } from 'rmrk-tools';
-import {addNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
+import {addNft, getNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
 import { addInvalid } from "../store/invalid"
@@ -54,11 +54,17 @@ export const startPendingBuyCanceller = async () => {
 }
 
 
-const watchBuyOps = rmrks => {
+const watchBuyOps = async rmrks => {
   console.log('watch buy ops')
     console.log(rmrks)
 
     const buyOps = rmrks.filter(rmrk => rmrk.interaction_type === 'BUY')
+    /*
+    * [{"block":6605,"caller":"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F","interaction_type":"BUY",
+    * "version":"2.0.0","remark":"RMRK::BUY::2.0.0::34-d43593c715a56da27d-VOTS-vot_sword_8-00000008",
+    * "extra_ex":[{"call":"balances.transfer","value":"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,1000000",
+    * "caller":"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F"}]}]
+    * */
     let currentTime = Date.now()
     for(const rmrk of buyOps) {
         let remark = rmrk.remark
@@ -66,7 +72,28 @@ const watchBuyOps = rmrks => {
         if(remark.length < 5) {
             continue;
         }
+        if(!rmrk.extra_ex) {
+            continue;
+        }
+        let extra_ex = rmrk.extra_ex
+            .filter(ex => ex.call === 'balances.transfer')
+        if(extra_ex.length < 1) {
+            continue
+        }
+        let { value } = extra_ex[0]
         let nftId = remark[3]
+        let nft = await getNft(nftId)
+        if(!nft) {
+            continue
+        }
+        let forSale = BigInt(nft.forsale)
+        let pricePaid = BigInt(value.split(',')[1])
+
+        console.log(`Checking Nft ${nftId} --- price: ${forSale} vs price Paid: ${pricePaid}`)
+        if(forSale <= 0 || pricePaid < forSale) {
+            continue
+        }
+
         PendingBuyNfts[nftId] = currentTime
     }
 
@@ -177,7 +204,7 @@ export const startBlockScanner = async () => {
     const unfinalizedSubscriber = listener.initialiseObservableUnfinalised();
 
     subscriber.subscribe();
-    unfinalizedSubscriber.subscribe((rmrks) => watchBuyOps(rmrks) );
+    unfinalizedSubscriber.subscribe(async (rmrks) => await watchBuyOps(rmrks) );
 
     console.log('...RMRK Listener Subscribed and Listening')
 }
