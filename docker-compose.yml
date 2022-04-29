@@ -1,6 +1,16 @@
 version: '3'
 
 services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      PGHOST: postgres
   postgres:
     container_name: postgres_container
     image: postgres
@@ -13,6 +23,5 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
-
 volumes:
   postgres:

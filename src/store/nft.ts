@@ -113,7 +113,7 @@ export const addNft = async (nftMap, from) => {
         let totalNfts = 0
 
         let nftArray = R.values(nftMap)
-            .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+            //.filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
 
 
         await Promise.all(nftArray.map(async nft => {
@@ -176,7 +176,8 @@ export const addNft = async (nftMap, from) => {
                     const data = await response.json();
                     metadata = JSON.stringify(data)
                 } catch(error) {
-                    console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
+
+                  //  console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
                 }
             }
             let insertionValues = [
