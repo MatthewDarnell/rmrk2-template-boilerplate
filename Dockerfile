@@ -6,5 +6,6 @@ RUN npm i --save-dev @types/pg
 
 COPY ./src /usr/src/app/src/
 COPY .env ./
-RUN yarn create-db
-ENTRYPOINT ["yarn", "start"]
+COPY ./entrypoint.sh ./
+RUN ["chmod", "+x", "./entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
