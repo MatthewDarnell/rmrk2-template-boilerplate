@@ -1,4 +1,4 @@
-
+import fetch from 'node-fetch'
 const R = require('ramda');
 
 import {db_get, db_query} from "../database";
@@ -6,6 +6,11 @@ import {db_get, db_query} from "../database";
 
 export const getNftsByCollection = async collectionId => {
     const query = `SELECT * FROM nfts_2 WHERE collection=$1`
+    return (await db_get(query, [collectionId]))
+}
+
+export const getNftsByCollectionForSale = async collectionId => {
+    const query = `SELECT * FROM nfts_2 WHERE collection=$1 AND forsale!='0'`
     return (await db_get(query, [collectionId]))
 }
 
@@ -107,7 +112,17 @@ export const addNft = async (nftMap, from) => {
             "properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;";
         let totalNfts = 0
 
-        let nftArray = R.values(nftMap)
+        let nftArray
+
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS.split(', ') || []
+
+        if(collectionsToGet.length > 0) {
+            nftArray = R.values(nftMap)
+            .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+        } else {
+            nftArray = R.values(nftMap)
+        }
+
 
         await Promise.all(nftArray.map(async nft => {
             let {
@@ -161,6 +176,18 @@ export const addNft = async (nftMap, from) => {
             }
             totalNfts++
 
+            let metadataArray = metadata.split('/')
+            if(metadataArray[0] === 'ipfs:') {
+                try {
+                    metadata = metadataArray.pop()
+                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
+                    const data = await response.json();
+                    metadata = JSON.stringify(data)
+                } catch(error) {
+
+                  //  console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
+                }
+            }
             let insertionValues = [
                 id,
                 block,

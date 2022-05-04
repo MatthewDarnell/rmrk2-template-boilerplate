@@ -29,4 +29,14 @@ export const setupCollectionRoutes = app => {
             res.status(500).send(`Error getting collection changes by id ${error}`)
         }
     })
+
+    app.get('/get_whitelisted_collections/', async (req, res) => {
+        try {
+            let collections = process.env.TRACKEDCOLLECTIONS.split(', ') || []
+            res.status(200).send(JSON.stringify(collections))
+        } catch(error) {
+            res.status(500).send(`Error getting whitelisted collections ${error}`)
+        }
+    })
+
 }

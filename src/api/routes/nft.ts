@@ -3,9 +3,10 @@ import {
     getNftsByCollection,
     getNft,
     getNftChildrenByNftId,
-    getNftChangesByNftId, getNftResourcesByNftId, getNftReactionsByNftId
+    getNftChangesByNftId, getNftResourcesByNftId, getNftReactionsByNftId, getNftsByCollectionForSale
 } from "../../store/nft";
 
+import {PendingBuyNfts} from "../../scanner/blockScanner";
 
 export const setupNftRoutes = app => {
     app.get('/get_nft_by_id/:id', async (req, res) => {
@@ -32,11 +33,19 @@ export const setupNftRoutes = app => {
         try {
             const collection = req.params.collection
             const nft = await getNftsByCollection(collection)
-            //console.log(nft)
-            console.log(nft.length)
             res.status(200).send(JSON.stringify(nft))
         } catch (error) {
             res.status(500).send(`Error getting nft by id ${error}`)
+        }
+    })
+
+    app.get('/get_nfts_for_sale_in_collection/:collection', async (req, res) => {
+        try {
+            const collection = req.params.collection
+            const nfts = await getNftsByCollectionForSale(collection)
+            res.status(200).send(JSON.stringify(nfts))
+        } catch (error) {
+            res.status(500).send(`Error getting nft collection for sale by id ${error}`)
         }
     })
 
@@ -49,4 +58,18 @@ export const setupNftRoutes = app => {
             res.status(500).send(`Error getting nfts owned by ${error}`)
         }
     })
+
+    app.get('/is_nft_being_bought/:nftId', async (req, res) => {
+        try {
+            const id = req.params.nftId
+            let retVal = false;
+            if(PendingBuyNfts.hasOwnProperty(id)) {
+                retVal = true
+            }
+            res.status(200).send(JSON.stringify(retVal))
+        } catch (error) {
+            res.status(500).send(`Error getting nfts being bought by ${error}`)
+        }
+    })
+
 }

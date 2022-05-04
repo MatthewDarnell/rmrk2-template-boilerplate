@@ -1,19 +1,25 @@
 require('dotenv').config()
 import { Client } from 'pg'
 
+const conn = {
+    user: process.env.PGUSER || "rmrk",
+    host: process.env.PGHOST || "localhost",
+    password: process.env.PGPASSWORD || "password",
+    port: parseInt(process.env.PGPORT || "3000"),
+}
+
+
 
 
 const createDb = async () => {
     try {
-        let client = new Client({
-            user: process.env.PGUSER,
-            host: process.env.PGHOST,
-            password: process.env.PGPASSWORD,
-            port: process.env.PGPORT,
-        })
-
+        let client = new Client(conn)
         await client.connect()
         const res = await client.query(`CREATE DATABASE ${process.env.DB}`);
+        console.log(`Creating `)
+        console.log(conn)
+        await client.query(`ALTER USER ${process.env.PGUSER} WITH ENCRYPTED PASSWORD '${process.env.PGPASSWORD}'`)
+        await client.query(`GRANT ALL PRIVILEGES ON DATABASE ${process.env.DB} TO ${process.env.PGUSER}`)
         await client.end()
         return res
     } catch(e) {
@@ -23,13 +29,7 @@ const createDb = async () => {
 
 const createSchema = async () => {
     console.log('creating schema')
-    let client = new Client({
-        user: process.env.PGUSER,
-        host: process.env.PGHOST,
-        database: process.env.DB,
-        password: process.env.PGPASSWORD,
-        port: process.env.PGPORT,
-    })
+    let client = new Client(conn)
     await client.connect()
 
     const notify = "CREATE OR REPLACE FUNCTION notify()\n" +

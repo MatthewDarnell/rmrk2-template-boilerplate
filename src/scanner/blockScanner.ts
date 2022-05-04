@@ -1,6 +1,6 @@
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { Consolidator, RemarkListener } from 'rmrk-tools';
-import {addNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
+import {addNft, getNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
 import { addInvalid } from "../store/invalid"
@@ -12,7 +12,7 @@ import { getConnection } from "./connection";
 const initialSeed = async () => {
     try {
         console.log('Fetching Latest RMRK Dump...')
-        const response = await fetch('https://gateway.pinata.cloud/ipns/precon-rmrk2.rmrk.link');
+        const response = await fetch('https://rmrk-dumps.s3.eu-west-1.amazonaws.com/consolidated-from-latest.json');
         // @ts-ignore
         const { lastBlock, nfts, collections, bases } = await response.json();
         console.log('...Done')
@@ -34,6 +34,55 @@ const initialSeed = async () => {
     }
 }
 
+
+export let PendingBuyNfts = {}
+export const startPendingBuyCanceller = async () => {
+    console.log('Starting Pending Buy Canceller')
+    setInterval(() => {
+        let currentTime = Date.now()
+        for(const nftId of Object.keys(PendingBuyNfts)) {
+            if(currentTime - PendingBuyNfts[nftId] > parseInt(process.env.PENDINGBUYCANCELLERINTERVAL)) {
+                delete PendingBuyNfts[nftId]
+            }
+        }
+    },
+        parseInt(process.env.PENDINGBUYCANCELLERTIMEOUT)
+    )
+}
+
+
+const watchBuyOps = async rmrks => {
+    const buyOps = rmrks.filter(rmrk => rmrk.interaction_type === 'BUY')
+    let currentTime = Date.now()
+    for(const rmrk of buyOps) {
+        let remark = rmrk.remark
+            .split('::')
+        if(remark.length < 4) {
+            continue;
+        }
+        if(!rmrk.extra_ex) {
+            continue;
+        }
+        let extra_ex = rmrk.extra_ex
+            .filter(ex => ex.call === 'balances.transfer')
+        if(extra_ex.length < 1) {
+            continue
+        }
+        let { value } = extra_ex[0]
+        let nftId = remark[3]
+        let nft = await getNft(nftId)
+        if(!nft) {
+            continue
+        }
+        let forSale = BigInt(nft.forsale)
+        let pricePaid = BigInt(value.split(',')[1])
+        if(forSale <= 0 || pricePaid < forSale) {
+            continue
+        }
+        PendingBuyNfts[nftId] = currentTime
+    }
+}
+
 export const startBlockScanner = async () => {
     let { lastBlock, nfts, collections, bases} = await initialSeed()
     console.log(`Starting RMRK Listener from block.(${lastBlock})...`)
@@ -45,7 +94,9 @@ export const startBlockScanner = async () => {
 
     const consolidateFunction = async (remarks: Remark[]) => {
         const rmrkBlocks = uniq(remarks.map((r) => r.block));
-        lastBlock = Math.max(...rmrkBlocks)
+        if(rmrkBlocks.length > 0) {
+            lastBlock = Math.max(...rmrkBlocks)
+        }
         const consolidator = new Consolidator(2, adapter, true, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
@@ -54,6 +105,7 @@ export const startBlockScanner = async () => {
         const affectedIds = interactionChanges?.length
             ? interactionChanges.map((c) => Object.values(c)).flat()
             : [];
+        console.log(affectedIds)
 
         let updatedNfts = result.nfts
         let updatedBases = result.bases
@@ -116,6 +168,10 @@ export const startBlockScanner = async () => {
     });
 
     const subscriber = listener.initialiseObservable();
+    const unfinalizedSubscriber = listener.initialiseObservableUnfinalised();
+
     subscriber.subscribe();
+    unfinalizedSubscriber.subscribe(async (rmrks) => await watchBuyOps(rmrks) );
+
     console.log('...RMRK Listener Subscribed and Listening')
 }
