@@ -112,8 +112,16 @@ export const addNft = async (nftMap, from) => {
             "properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;";
         let totalNfts = 0
 
-        let nftArray = R.values(nftMap)
-            //.filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+        let nftArray
+
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS.split(', ') || []
+
+        if(collectionsToGet.length > 0) {
+            nftArray = R.values(nftMap)
+            .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+        } else {
+            nftArray = R.values(nftMap)
+        }
 
 
         await Promise.all(nftArray.map(async nft => {

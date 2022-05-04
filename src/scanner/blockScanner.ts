@@ -11,10 +11,8 @@ import fetch from 'node-fetch'
 import { getConnection } from "./connection";
 const initialSeed = async () => {
     try {
-        return {lastBlock: 0, nfts: {}, collections: {}, bases: {}}
-        /*
         console.log('Fetching Latest RMRK Dump...')
-        const response = await fetch('https://gateway.pinata.cloud/ipns/precon-rmrk2.rmrk.link');
+        const response = await fetch('https://rmrk-dumps.s3.eu-west-1.amazonaws.com/consolidated-from-latest.json');
         // @ts-ignore
         const { lastBlock, nfts, collections, bases } = await response.json();
         console.log('...Done')
@@ -30,7 +28,6 @@ const initialSeed = async () => {
         }
 
         return { lastBlock: lastBlock + 1, nfts, collections, bases };
-        */
     } catch(error) {
         console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
         process.exit(-1)
@@ -55,16 +52,7 @@ export const startPendingBuyCanceller = async () => {
 
 
 const watchBuyOps = async rmrks => {
-  console.log('watch buy ops')
-    console.log(rmrks)
-
     const buyOps = rmrks.filter(rmrk => rmrk.interaction_type === 'BUY')
-    /*
-    * [{"block":6605,"caller":"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F","interaction_type":"BUY",
-    * "version":"2.0.0","remark":"RMRK::BUY::2.0.0::34-d43593c715a56da27d-VOTS-vot_sword_8-00000008",
-    * "extra_ex":[{"call":"balances.transfer","value":"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY,1000000",
-    * "caller":"HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F"}]}]
-    * */
     let currentTime = Date.now()
     for(const rmrk of buyOps) {
         let remark = rmrk.remark
@@ -88,30 +76,11 @@ const watchBuyOps = async rmrks => {
         }
         let forSale = BigInt(nft.forsale)
         let pricePaid = BigInt(value.split(',')[1])
-
-        console.log(`Checking Nft ${nftId} --- price: ${forSale} vs price Paid: ${pricePaid}`)
         if(forSale <= 0 || pricePaid < forSale) {
             continue
         }
-
         PendingBuyNfts[nftId] = currentTime
     }
-
-
-
-    /*
-    watch buy ops
-[
-  {
-    block: 574,
-    caller: 'HNZata7iMYWmk5RvZRTiAsSDhV8366zq2YGb3tLH5Upf74F',
-    interaction_type: 'LIST',
-    version: '2.0.0',
-    remark: 'RMRK::LIST::2.0.0::34-d43593c715a56da27d-VOTS-vot_sword_5-00000005::0',
-    extra_ex: undefined
-  }
-]
-     */
 }
 
 export const startBlockScanner = async () => {
@@ -128,8 +97,6 @@ export const startBlockScanner = async () => {
         if(rmrkBlocks.length > 0) {
             lastBlock = Math.max(...rmrkBlocks)
         }
-        console.log('consolidate called on blocks ')
-        console.log(rmrkBlocks)
         const consolidator = new Consolidator(2, adapter, true, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
