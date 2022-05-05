@@ -6,7 +6,7 @@ const conn = {
     host: process.env.PGHOST || "localhost",
     password: process.env.PGPASSWORD || "password",
     port: parseInt(process.env.PGPORT || "3000"),
-    database: process.env.DB || "postgrs"
+    database: process.env.DB || "postgres"
 }
 
 
