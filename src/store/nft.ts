@@ -114,7 +114,7 @@ export const addNft = async (nftMap, from) => {
 
         let nftArray
 
-        const collectionsToGet = process.env.TRACKEDCOLLECTIONS.split(', ') || []
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : []
 
         if(collectionsToGet.length > 0) {
             nftArray = R.values(nftMap)
@@ -176,18 +176,16 @@ export const addNft = async (nftMap, from) => {
             }
             totalNfts++
 
-            let metadataArray = metadata.split('/')
-            if(metadataArray[0] === 'ipfs:') {
-                try {
+            try {
+                let metadataArray = metadata.split('/')
+                if(metadataArray[0] === 'ipfs:') {
                     metadata = metadataArray.pop()
                     const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
                     const data = await response.json();
                     metadata = JSON.stringify(data)
-                } catch(error) {
-
-                  //  console.error(`Error Fetching Metadata for NFT ${id} --- ${error}`)
                 }
-            }
+            } catch(error) {}
+
             let insertionValues = [
                 id,
                 block,
