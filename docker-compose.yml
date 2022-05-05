@@ -3,8 +3,6 @@ version: '3'
 services:
   app:
     build: .
-    ports:
-      - "3000:3000"
     links:
       - postgres
     depends_on:
@@ -23,5 +21,13 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
+  nginx:
+    build: ./nginx
+    ports:
+      - "3000:8080"
+    depends_on:
+      - app
+    links:
+      - app
 volumes:
   postgres:
