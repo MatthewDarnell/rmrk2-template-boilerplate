@@ -40,3 +40,12 @@ setupCollectionRoutes(app)
 setupInvalidRoute(app)
 setupRemarksRoute(app)
 setupNftRoutes(app)
+
+const api = app._router.stack.filter(r=> r.route && r.route.path).map(r => r.route.path)
+app.get('/api', async (req, res) => {
+    try {
+        res.status(200).send(JSON.stringify(api, null, 2))
+    } catch(error) {
+        res.status(500).send(`Error getting api ${error}`)
+    }
+})
