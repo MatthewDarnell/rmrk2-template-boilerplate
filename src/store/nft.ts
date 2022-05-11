@@ -176,15 +176,22 @@ export const addNft = async (nftMap, from) => {
             }
             totalNfts++
 
-            try {
-                let metadataArray = metadata.split('/')
-                if(metadataArray[0] === 'ipfs:') {
-                    metadata = metadataArray.pop()
-                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
-                    const data = await response.json();
-                    metadata = JSON.stringify(data)
+            const ipfsRetries = process.env.IPFSFETCHRETRIES ? parseInt(process.env.IPFSFETCHRETRIES) : 2;
+            let retries = 0
+            while(retries < ipfsRetries) {
+                try {
+                    let metadataArray = metadata.split('/')
+                    if(metadataArray[0] === 'ipfs:') {
+                        metadata = metadataArray.pop()
+                        const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
+                        const data = await response.json();
+                        metadata = JSON.stringify(data)
+                        break;
+                    }
+                } catch(error) {
+                    retries++;
                 }
-            } catch(error) {}
+            }
 
             let insertionValues = [
                 id,
