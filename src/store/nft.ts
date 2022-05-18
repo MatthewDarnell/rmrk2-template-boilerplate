@@ -204,9 +204,9 @@ export const addNft = async (nftMap, from) => {
 
 const addNftMetadata = async (nftId, metadataString) => {
     try {
-        const insert = "INSERT INTO nft_changes_2 (nft_id, metadata) VALUES " +
+        const insert = "INSERT INTO nfts_2 (id, metadata) VALUES " +
             " ($1, $2) " +
-            " ON CONFLICT (nft_id, metadata) DO UPDATE SET metadata = excluded.metadata;"
+            " ON CONFLICT (id, metadata) DO UPDATE SET metadata = excluded.metadata;"
         const ipfsRetries = process.env.IPFSFETCHRETRIES ? parseInt(process.env.IPFSFETCHRETRIES) : 2;
         let retries = 0
         while(retries < ipfsRetries) {
