@@ -15,9 +15,10 @@ const express = require('express')
 const app = express()
 
 
+const maxCallsPerIpPerMin = process.env.MAXCALLSPERMIN ? parseInt(process.env.MAXCALLSPERMIN) : 20;
 const limiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
-    max: 10, // Limit each IP to 10 requests per `window`
+    max: maxCallsPerIpPerMin, // Limit each IP to 10 requests per `window`
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 })
