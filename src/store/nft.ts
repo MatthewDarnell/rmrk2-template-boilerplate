@@ -176,23 +176,6 @@ export const addNft = async (nftMap, from) => {
             }
             totalNfts++
 
-            const ipfsRetries = process.env.IPFSFETCHRETRIES ? parseInt(process.env.IPFSFETCHRETRIES) : 2;
-            let retries = 0
-            while(retries < ipfsRetries) {
-                try {
-                    let metadataArray = metadata.split('/')
-                    if(metadataArray[0] === 'ipfs:') {
-                        metadata = metadataArray.pop()
-                        const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
-                        const data = await response.json();
-                        metadata = JSON.stringify(data)
-                        break;
-                    }
-                } catch(error) {
-                    retries++;
-                }
-            }
-
             let insertionValues = [
                 id,
                 block,
@@ -211,10 +194,44 @@ export const addNft = async (nftMap, from) => {
                 maxBlock
             ]
             await db_query(insert, insertionValues)
+            await addNftMetadata(id, metadata)
         }))
         return totalNfts
     } catch(error) {
         console.error(`Error Adding Nft: ${error}`)
+    }
+}
+
+const addNftMetadata = async (nftId, metadataString) => {
+    try {
+        const insert = "INSERT INTO nft_changes_2 (nft_id, metadata) VALUES " +
+            " ($1, $2) " +
+            " ON CONFLICT (nft_id, metadata) DO UPDATE SET metadata = excluded.metadata;"
+        const ipfsRetries = process.env.IPFSFETCHRETRIES ? parseInt(process.env.IPFSFETCHRETRIES) : 2;
+        let retries = 0
+        while(retries < ipfsRetries) {
+            try {
+                let metadataArray = metadataString.split('/')
+                if(metadataArray[0] === 'ipfs:') {
+                    let metadata = metadataArray.pop()
+                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
+                    const data = await response.json();
+                    metadata = JSON.stringify(data)
+                    let insertionValues = [
+                        nftId,
+                        metadata,
+                    ]
+                    return await db_query(insert, insertionValues)
+                } else {    //metadata is not ipfs Uri
+                    return 0
+                }
+            } catch(error) {
+                retries++;
+            }
+        }
+        //Unable to fetch metadata
+    } catch(error) {
+        console.error(`Error in addNftMetadata: ${error}`)
     }
 }
 
