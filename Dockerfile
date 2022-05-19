@@ -6,6 +6,6 @@ RUN npm i --save-dev @types/pg
 
 COPY ./src /usr/src/app/src/
 COPY .env ./
-COPY ./entrypoint.sh ./
+COPY ./entrypoint.sh /usr/src/app/
 RUN ["chmod", "+x", "./entrypoint.sh"]
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
