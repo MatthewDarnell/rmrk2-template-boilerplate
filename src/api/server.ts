@@ -38,8 +38,6 @@ export const getServer = () => httpServer
 setupLastBlockRoute(app)
 setupBaseRoutes(app)
 setupCollectionRoutes(app)
-setupInvalidRoute(app)
-setupRemarksRoute(app)
 setupNftRoutes(app)
 
 const api = app._router.stack.filter(r=> r.route && r.route.path).map(r => r.route.path)
