@@ -3,35 +3,99 @@ import { Consolidator, RemarkListener } from 'rmrk-tools';
 import {addNft, getNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
-import { addInvalid } from "../store/invalid"
 import { InMemoryAdapter, StorageProvider } from "../store/adapter";
 import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
 import uniq from 'uniq'
-import fetch from 'node-fetch'
 import { getConnection } from "./connection";
-const initialSeed = async () => {
-    try {
-        console.log('Fetching Latest RMRK Dump...')
-        const response = await fetch('https://rmrk-dumps.s3.eu-west-1.amazonaws.com/consolidated-from-latest.json');
-        // @ts-ignore
-        const { lastBlock, nfts, collections, bases } = await response.json();
+import tar from 'tar-fs'
+const fs = require('fs')
+const https = require('https')
+const zlib = require('zlib')
+
+
+
+const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
+    console.log(`Reading File: ${fileName}`);
+    const file = JSON.parse(
+        fs.readFileSync(fileName, 'utf8')
+    );
+
+    // @ts-ignore
+    const { lastBlock, nfts, collections, bases } = file;
+    console.log('Recreating State From Dump, Last Block: ' + lastBlock);
+
+    const dbLastKnownBlock = parseInt(await getLastBlockScanned())
+    if(dbLastKnownBlock < lastBlock) {
+        console.log('Inserting Latest RMRK Dump Into DB, this could take a while...')
+        await addBase(bases)
+        await addCollection(collections)
+        await addNft(nfts, dbLastKnownBlock)
+        await setLastBlockScanned(lastBlock)
         console.log('...Done')
-
-        let dbLastKnownBlock = parseInt(await getLastBlockScanned())
-        if(dbLastKnownBlock < lastBlock) {
-            console.log('Inserting Latest RMRK Dump Into DB...')
-            await addBase(bases)
-            await addCollection(collections)
-            await addNft(nfts, dbLastKnownBlock)
-            await setLastBlockScanned(lastBlock)
-            console.log('...Done')
-        }
-
-        return { lastBlock: lastBlock + 1, nfts, collections, bases };
-    } catch(error) {
-        console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
-        process.exit(-1)
     }
+    return ({ lastBlock: lastBlock + 1, nfts, collections, bases });
+}
+
+const initialSeed = () => {
+    return new Promise(async res => {
+        try {
+            const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
+            const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
+            const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
+
+            if(!dumpUrl) {  //No dump, start syncing from block 0
+                console.log(`No Dump to Fetch, begin syncing from block 0...`)
+                await setLastBlockScanned(0)
+                return { lastBlock:  0, nfts: {}, collections: {}, bases: {} };
+            }
+            console.log(`Fetching Latest RMRK Dump: <${dumpUrl}> (.tar? ${isTarball} , .gz? ${isGzip})...`)
+            https.get(dumpUrl, response => {
+                const stream = fs.createWriteStream("./rmrk-dump.file")
+                response.pipe(stream)
+                stream.on('open', () => {
+                    console.log('Began Downloading')
+                })
+                stream.on("finish", () => {
+                    console.log(`Download Completed! Read ${stream.bytesWritten/1000000} MB!`);
+                    let file = fs.readFileSync('./rmrk-dump.file')
+
+                    if(isGzip) {
+                        console.log('Began Unzipping File')
+                        file = zlib.gunzipSync(file)
+                        fs.writeFileSync('./rmrk-dump.file.unzipped', file)
+                        console.log('Finished Unzipping!')
+                    }
+
+                    if(isTarball) {
+                        console.log('Began Extracting')
+                        let readStream = fs.createReadStream('./rmrk-dump.file.unzipped')
+                        const extract = tar.extract('.')
+                        readStream.pipe(extract)
+                        let fileName
+                        extract.on('entry', function(header, stream, next) {    //Assuming there is only 1 file in this tarball
+                            fileName = header.name
+                            stream.on('end', function() {
+                                next() // ready for next entry
+                            })
+                        })
+                        extract.on('error', data => {
+                            console.error(data)
+                            process.exit(0)
+                        })
+                        extract.on('finish', async () => {
+                            console.log('Finished Extracting!')
+                            return res(readConsolidatedFileIntoMemoryAndSaveToDb(fileName));
+                        })
+                    } else {    //not a tarball, just read the file
+                        return res(readConsolidatedFileIntoMemoryAndSaveToDb('./rmrk-dump.file.unzipped'));
+                    }
+                });
+            })
+        } catch(error) {
+            console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
+            process.exit(-1)
+        }
+    })
 }
 
 

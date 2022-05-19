@@ -4,7 +4,7 @@
   "description": "A Template on which to Build RMRK2 WebApps",
   "main": "src/index.js",
   "scripts": {
-    "start-db": "docker-compose up",
+    "start-db": "docker-compose up postgres",
     "create-db": "npx ts-node src/bin/createdb.ts",
     "consolidated2db": "npx ts-node src/bin/consolidated_dump_2_db.ts",
     "unconsolidated2db": "npx ts-node src/bin/unconsolidated_dump_2_db.ts",
@@ -34,6 +34,7 @@
     "rmrk-tools": "^2.0.51",
     "shelljs": "^0.8.5",
     "socket.io": "^4.4.0",
+    "tar-fs": "^2.1.1",
     "ts-node": "^10.1.0",
     "typescript": "^4.3.5",
     "uniq": "^1.0.1"

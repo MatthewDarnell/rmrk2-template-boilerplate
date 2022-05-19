@@ -4,7 +4,7 @@ import {startBlockScanner, startPendingBuyCanceller} from "./scanner/blockScanne
 import { startSocketApi } from "./api/socket"
 import { startDbListener } from "./api/listener";
 
-console.log(`Starting Rmrk Listener. Connecting at < ${process.env.PGUSER}@${process.env.DB} >`)
+console.log(`Starting Rmrk Listener. Connecting at <${process.env.PGUSER}@${process.env.DB}>`)
 
 db_get(`SELECT NOW()`, "").then(async time => {
     try {
