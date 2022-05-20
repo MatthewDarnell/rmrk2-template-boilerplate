@@ -123,8 +123,12 @@ export const addNft = async (nftMap, from) => {
             nftArray = R.values(nftMap)
         }
 
+        await Promise.all(nftArray.map(async (nft, index) => {
 
-        await Promise.all(nftArray.map(async nft => {
+            if(index/nftArray.length % 10 == 0) {
+                console.log(`Inserting Nft ${index}`)
+            }
+
             let {
                 block,
                 collection,

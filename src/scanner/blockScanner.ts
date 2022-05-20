@@ -27,9 +27,16 @@ const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
     const dbLastKnownBlock = parseInt(await getLastBlockScanned())
     if(dbLastKnownBlock < lastBlock) {
         console.log('Inserting Latest RMRK Dump Into DB, this could take a while...')
+
+        console.log('Importing Bases')
         await addBase(bases)
+
+        console.log('Importing Collections')
         await addCollection(collections)
+
+        console.log('Importing Nfts')
         await addNft(nfts, dbLastKnownBlock)
+
         await setLastBlockScanned(lastBlock)
         console.log('...Done')
     }
@@ -148,6 +155,7 @@ const watchBuyOps = async rmrks => {
 }
 
 export const startBlockScanner = async () => {
+    // @ts-ignore
     let { lastBlock, nfts, collections, bases} = await initialSeed()
     console.log(`Starting RMRK Listener from block.(${lastBlock})...`)
     const adapter = new InMemoryAdapter(nfts, collections, bases);
