@@ -354,6 +354,8 @@ const addNewResource = async (resource) => {
             let base = 'NULL'
             let src = 'NULL'
             let slot = 'NULL'
+            let theme
+            let themeId = 'NULL'
 
             if(r.hasOwnProperty('src')) {
                 src = `'${r.src}'`
@@ -364,6 +366,20 @@ const addNewResource = async (resource) => {
             if(r.hasOwnProperty('base')) {
                 base = `'${r.base}'`
             }
+            if(r.hasOwnProperty('theme')) {
+                if(typeof r.theme === 'object') {
+                    theme = r.theme
+                } else {    //Some themes are string types, but our db requires jsonb
+                    theme = `{'theme': '${r.theme}'}`
+                }
+            } else {
+                theme = {}
+            }
+
+            if(r.hasOwnProperty('themeId')) {
+                themeId = r.themeId
+            }
+
             if(r.parts) {
                 parts = r.parts
             }
@@ -376,10 +392,10 @@ const addNewResource = async (resource) => {
                 src,
                 slot,
                 thumb,
-                {},
+                theme,
                 base,
                 JSON.stringify(parts),
-                null,
+                themeId,
                 metadata
             ]
             await db_query(insert, insertionValues)
