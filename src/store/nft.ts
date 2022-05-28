@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import fetch, { Headers } from 'node-fetch'
 const R = require('ramda');
 
 import {db_get, db_query} from "../database";
@@ -17,6 +17,25 @@ export const getNftsByCollectionForSale = async collectionId => {
 export const removeOwner = async (childId, ownerId) => {
     const query = `DELETE FROM nft_children_2 WHERE id=$1 AND nft_id=$2`
     return await db_query(query, [childId, ownerId])
+}
+
+const isNftMetadataFetched = async nftId => {
+    try {
+        const query = `SELECT did_fetch_metadata FROM nfts_2 WHERE id=$1;`
+        return ((await db_get(query, [nftId]))[0]['did_fetch_metadata']);
+    } catch(error) {
+        return false
+    }
+}
+
+const setNftMetadataFetched = async nftId => {
+    try {
+        return await db_query(
+            "UPDATE nfts_2 SET did_fetch_metadata=TRUE WHERE id=$1;",
+            [nftId])
+    } catch(error) {
+        console.error(`Error setNftMetadataFetched: ${error}`)
+    }
 }
 
 export const getNftIdsClaimingChild = async childId => {
@@ -51,7 +70,7 @@ export const getNft = async nftId => {
 
 export const getNftChildrenByNftId = async nftId => {
     const query = `SELECT nfts_2.collection, nft_children_2.id, ` +
-       ` nft_children_2.pending, nft_children_2.equipped FROM nft_children_2` +
+        ` nft_children_2.pending, nft_children_2.equipped FROM nft_children_2` +
         ` INNER JOIN nfts_2 ON nfts_2.id=nft_children_2.nft_id` +
         ` WHERE nfts_2.id=$1`
     return (await db_get(query, [nftId]))
@@ -118,14 +137,14 @@ export const addNft = async (nftMap, from) => {
 
         if(collectionsToGet.length > 0) {
             nftArray = R.values(nftMap)
-            .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+                .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
         } else {
             nftArray = R.values(nftMap)
         }
 
         await Promise.all(nftArray.map(async (nft, index) => {
 
-            if(index/nftArray.length % 10 == 0) {
+            if(index > 0 && (index % 1000) == 0) {
                 console.log(`Inserting Nft ${index}`)
             }
 
@@ -198,42 +217,97 @@ export const addNft = async (nftMap, from) => {
                 maxBlock
             ]
             await db_query(insert, insertionValues)
-            await addNftMetadata(id, metadata)
+            if(!(await isNftMetadataFetched(id))) {
+                await addNftMetadata(id, index, metadata)
+            }
         }))
         return totalNfts
     } catch(error) {
         console.error(`Error Adding Nft: ${error}`)
     }
 }
-
-const addNftMetadata = async (nftId, metadataString) => {
+const addNftMetadata = async (nftId, index,  metadataString) => {
     try {
         const insert = "UPDATE nfts_2 SET metadata=$1 " +
             " WHERE id=$2;";
-
-        const ipfsRetries = process.env.IPFSFETCHRETRIES ? parseInt(process.env.IPFSFETCHRETRIES) : 2;
-        let retries = 0
-        while(retries < ipfsRetries) {
-            try {
-                let metadataArray = metadataString.split('/')
-                if(metadataArray[0] === 'ipfs:') {
-                    let metadata = metadataArray.pop()
-                    const response = await fetch(`${process.env.IPFSGATEWAY}/${metadata}`);
-                    const data = await response.json();
-                    metadata = JSON.stringify(data)
-                    let insertionValues = [
-                        metadata,
-                        nftId,
-                    ]
-                    return await db_query(insert, insertionValues)
-                } else {    //metadata is not ipfs Uri
-                    return 0
-                }
-            } catch(error) {
-                retries++;
+        let metadata = ''
+        try {
+            if(!metadataString) {
+                return 0
             }
+            if(metadataString.length < 32) {
+                return 0
+            }
+            let metadataArray = metadataString.split('ipfs/')
+            let ipfsOrHttps = metadataArray[0] === 'ipfs://'    //Some metadatas are https:// links, we need to simply GET them
+            if(metadataArray.length < 1) {
+                console.error(`metadata is not ipfs: https://rmrk-listener.infura-ipfs.io/ipfs/${metadataString}`)
+                return 0
+            }
+            metadataArray = metadataArray.slice(1)  //['ipfs://', 'ba...']
+            metadata = metadataArray[0]
+            if(metadata[0] !== 'Q' && metadata[0] !== 'b') {
+                console.error(`Strange Metadata: ${metadataString} - ${JSON.stringify(metadataArray)} - ${metadata}`)
+                return 0
+            }
+
+            let response
+
+            if(!ipfsOrHttps) {
+                // @ts-ignore
+                response = await fetch(metadataString, {
+                    method: 'GET'
+                });
+            } else {
+                const usePaidGateway = process.env.IPFSUSEPAID ? process.env.IPFSUSEPAID : false;
+
+                if(usePaidGateway) {
+                    const userAgent = process.env.IPFSPAIDUSERAGENT
+                    const gateway = process.env.IPFSPAIDGATEWAY
+                    const method = process.env.IPFSPAIDMETHOD
+                    const host = process.env.IPFSPAIDHOST
+                    const projectId = process.env.IPFSPAIDPROJECTID
+                    const projectSecret = process.env.IPFSPAIDSECRET
+
+                    const headers = new Headers()
+                    headers.set('Authorization', 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64'))
+                    headers.set('User-Agent', userAgent)
+                    headers.set('Host', host)
+                    headers.set('Content-Type', 'application/json')
+
+                    // @ts-ignore
+                    response = await fetch(`${gateway}${metadata}`,
+                        {
+                            method,
+                            headers
+                        }
+                    );
+                } else {
+                    const gateways = process.env.IPFSGATEWAY.split(',')
+                    const gateway = gateways[   //choose a random gateway
+                        Math.floor(
+                        Math.random() * gateways.length
+                    )
+                    ]
+                    response = await fetch(`${gateway}/${metadata}`)
+                }
+            }
+
+            metadata = await response.text();
+            let insertionValues = [
+                metadata,
+                nftId,
+            ]
+
+            await setNftMetadataFetched(nftId);
+            return await db_query(insert, insertionValues)
+
+        } catch(error) {
+            console.error(metadataString)
+            console.error(error)
         }
-        //Unable to fetch metadata
+
+        //Unable to fetch metadata, probably due to network or rate limit. Should try again at some point
     } catch(error) {
         console.error(`Error in addNftMetadata: ${error}`)
     }
@@ -243,9 +317,9 @@ const addNftMetadata = async (nftId, metadataString) => {
 const addNftChanges = async (nftId, changes, startBlock) => {
     try {
         const insert = "INSERT INTO nft_changes_2 (nft_id, change_index, field, old, new, caller, block, opType) VALUES " +
-                     " ($1, $2, $3, $4, $5, $6, $7, $8) " +
-                     " ON CONFLICT (nft_id, change_index, block) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller," +
-                     " opType = excluded.opType;";
+            " ($1, $2, $3, $4, $5, $6, $7, $8) " +
+            " ON CONFLICT (nft_id, change_index, block) DO UPDATE SET field = excluded.field, old = excluded.old, new = excluded.new, caller = excluded.caller," +
+            " opType = excluded.opType;";
         let totalChanges = 0
         await Promise.all(changes.map(async (change, index) => {
             let {
@@ -284,7 +358,7 @@ const addNftChanges = async (nftId, changes, startBlock) => {
 const addNftChildren = async (nftId, children) => {
     try {
         let insert = "INSERT INTO nft_children_2 (nft_id, id, pending, equipped) VALUES ($1, $2, $3, $4) " +
-                     " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;";
+            " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;";
         let totalChildren = 0
 
         await db_query("DELETE FROM nft_children_2 WHERE nft_id=$1", [nftId])
@@ -315,7 +389,7 @@ const addNftChildren = async (nftId, children) => {
 const addNftReactions = async (nftId, reactions) => {
     try {
         let insert = "INSERT INTO nft_reactions_2 (nft_id, reaction, wallets) VALUES ($1, $2, $3) " +
-                     "ON CONFLICT (nft_id, reaction) DO UPDATE SET wallets = excluded.wallets;";
+            "ON CONFLICT (nft_id, reaction) DO UPDATE SET wallets = excluded.wallets;";
         let totalReactions = 0
         let arrayReactions = R.values(reactions)
         await Promise.all(arrayReactions.map(async (reaction, index) => {
@@ -338,9 +412,9 @@ const addNftReactions = async (nftId, reactions) => {
 const addNewResource = async (resource) => {
     try {
         const insert = "INSERT INTO nft_resources_2 (nft_id, id, pending, src, slot, thumb, theme, base, parts, themeId, metadata) VALUES" +
-                       " ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) " +
-                       " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, " +
-                       " thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;";
+            " ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) " +
+            " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, src = excluded.src, slot = excluded.slot, " +
+            " thumb = excluded.thumb, theme = excluded.theme, base = excluded.base, parts = excluded.parts, themeId = excluded.themeId, metadata = excluded.metadata;";
         let totalResources = 0
         const { nftId, metadata, res } = resource
         await Promise.all(res.map(async r => {
@@ -370,7 +444,9 @@ const addNewResource = async (resource) => {
                 if(typeof r.theme === 'object') {
                     theme = r.theme
                 } else {    //Some themes are string types, but our db requires jsonb
-                    theme = `{'theme': '${r.theme}'}`
+                    theme = {
+                        theme: r.theme
+                    }
                 }
             } else {
                 theme = {}

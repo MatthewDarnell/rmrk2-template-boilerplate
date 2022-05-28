@@ -85,8 +85,10 @@ const createSchema = async () => {
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_base_id_parts_2 ON base_parts_2 (base_id, id);\n"+
         "CREATE TABLE IF NOT EXISTS invalid_2 (invalid_index integer primary key, op_type text, block integer, caller text, object_id text, message text);\n"+
         "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);\n" +
-        "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, hash text UNIQUE);"
-        //"CREATE UNIQUE INDEX remarks_extra_ex_unq_idx ON remarks (block, caller, interaction_type, version, remark, extra_ex) WHERE extra_ex IS NOT NULL";
+        "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, hash text UNIQUE);" +
+
+        "ALTER TABLE nfts_2 ADD COLUMN IF NOT EXISTS did_fetch_metadata boolean DEFAULT false;"
+
     console.log(schema)
     await client.query(schema);
     console.log(notify)
