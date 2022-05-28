@@ -241,7 +241,7 @@ const addNftMetadata = async (nftId, index,  metadataString) => {
             let metadataArray = metadataString.split('ipfs/')
             let ipfsOrHttps = metadataArray[0] === 'ipfs://'    //Some metadatas are https:// links, we need to simply GET them
             if(metadataArray.length < 1) {
-                console.error(`metadata is not ipfs: https://rmrk-listener.infura-ipfs.io/ipfs/${metadataString}`)
+                console.error(`Metadata is not ipfs: ${metadataString}`)
                 return 0
             }
             metadataArray = metadataArray.slice(1)  //['ipfs://', 'ba...']
