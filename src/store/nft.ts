@@ -64,8 +64,20 @@ export const getNft = async nftId => {
     if(nft.length > 0) {
         return nft[0]
     } else {
-        throw new Error('nft not found')
+        console.error(`${nftId} -- getNft() not found`)
+        return null
     }
+}
+
+export const getNftMetadataIpfsLink = async limit => {
+    const query = `SELECT * FROM nfts_2 WHERE metadata LIKE 'ipfs://%' LIMIT $1;`
+    const nfts = await db_get(query, [limit])
+    return nfts.length > 0 ? nfts : []
+}
+
+export const getNumNftMetadataIpfsLink = async () => {
+    const query = "SELECT COUNT(*) FROM nfts_2 WHERE metadata LIKE 'ipfs://%';"
+    await db_get(query, [])
 }
 
 export const getNftChildrenByNftId = async nftId => {
@@ -217,18 +229,15 @@ export const addNft = async (nftMap, from) => {
                 maxBlock
             ]
             await db_query(insert, insertionValues)
-            if(!(await isNftMetadataFetched(id))) {
-                await addNftMetadata(id, index, metadata)
-            }
         }))
         return totalNfts
     } catch(error) {
         console.error(`Error Adding Nft: ${error}`)
     }
 }
-const addNftMetadata = async (nftId, index,  metadataString) => {
+export const addNftMetadata = async (nftId, index,  metadataString) => {
     try {
-        const insert = "UPDATE nfts_2 SET metadata=$1 " +
+        const insert = "UPDATE nfts_2 SET metadata=$1, did_fetch_metadata=TRUE " +
             " WHERE id=$2;";
         let metadata = ''
         try {
@@ -270,6 +279,7 @@ const addNftMetadata = async (nftId, index,  metadataString) => {
                     const projectSecret = process.env.IPFSPAIDSECRET
 
                     const headers = new Headers()
+
                     headers.set('Authorization', 'Basic ' + Buffer.from(projectId + ':' + projectSecret).toString('base64'))
                     headers.set('User-Agent', userAgent)
                     headers.set('Host', host)
@@ -279,6 +289,8 @@ const addNftMetadata = async (nftId, index,  metadataString) => {
                     response = await fetch(`${gateway}${metadata}`,
                         {
                             method,
+                            auth: projectId + ':' + projectSecret,
+                            host,
                             headers
                         }
                     );
@@ -299,8 +311,9 @@ const addNftMetadata = async (nftId, index,  metadataString) => {
                 nftId,
             ]
 
-            await setNftMetadataFetched(nftId);
-            return await db_query(insert, insertionValues)
+
+            await db_query(insert, insertionValues)
+            return 0
 
         } catch(error) {
             console.error(metadataString)

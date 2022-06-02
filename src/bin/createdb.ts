@@ -87,7 +87,8 @@ const createSchema = async () => {
         "CREATE TABLE IF NOT EXISTS lastBlock_2 (lastBlock integer);\n" +
         "CREATE TABLE IF NOT EXISTS remarks (id serial, block integer, caller text, interaction_type text, version text, remark text, extra_ex text, hash text UNIQUE);" +
 
-        "ALTER TABLE nfts_2 ADD COLUMN IF NOT EXISTS did_fetch_metadata boolean DEFAULT false;"
+        "ALTER TABLE nfts_2 ADD COLUMN IF NOT EXISTS did_fetch_metadata boolean DEFAULT false;" +
+        "ALTER TABLE nfts_2 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW();"
 
     console.log(schema)
     await client.query(schema);

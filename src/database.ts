@@ -6,7 +6,8 @@ export const getDbString = () => {
         host: process.env.PGHOST,
         database: process.env.DB,
         password: process.env.PGPASSWORD,
-        port: process.env.PGPORT
+        port: process.env.PGPORT,
+        max: 80
     }
 }
 const pool = new Pool(getDbString())
@@ -28,29 +29,23 @@ pool.connect().then(client => {
 
 
 export const db_query = async (text, params) => {
-    let client;
     let res
     try {
-        client = await pool.connect()
-        res = await client.query(text, params)
+        res = await pool.query(text, params)
     } catch (error) {
-        console.error(`Error db query: ${error}`)
+        console.error(`Error db query: ${error}  --- ${text} -- ${params}`)
     } finally {
-        client.release()
     }
     return res
 }
 
 export const db_get = async (text, params) => {
-    let client;
     let res
     try {
-        client = await pool.connect()
-        res = await client.query(text, params)
+        res = await pool.query(text, params)
     } catch (error) {
-        console.error(`Error db query: ${error}`)
+        console.error(`Error db_get: ${error} --- ${text} -- ${params}`)
     } finally {
-        client.release()
     }
     return res.rows
 }

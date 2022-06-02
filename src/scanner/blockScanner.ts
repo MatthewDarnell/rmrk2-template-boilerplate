@@ -1,6 +1,14 @@
 import { getLastBlockScanned, setLastBlockScanned } from "../store/last_block";
 import { Consolidator, RemarkListener } from 'rmrk-tools';
-import {addNft, getNft, getNftIdsClaimingChild, removeOwner} from "../store/nft"
+import {
+    addNft,
+    addNftMetadata,
+    getNft,
+    getNftIdsClaimingChild,
+    getNftMetadataIpfsLink,
+    getNumNftMetadataIpfsLink,
+    removeOwner
+} from "../store/nft"
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
 import { InMemoryAdapter, StorageProvider } from "../store/adapter";
@@ -246,4 +254,18 @@ export const startBlockScanner = async () => {
     unfinalizedSubscriber.subscribe(async (rmrks) => await watchBuyOps(rmrks) );
 
     console.log('...RMRK Listener Subscribed and Listening')
+}
+
+
+export const startMetadataFetcher = async () => {
+    console.log('Starting Metadata Fetcher')
+    setInterval(async () => {
+        const nfts = await getNftMetadataIpfsLink(90);
+        for(const nft of nfts) {
+            const { id, metadata } = nft
+            await addNftMetadata(id, 0, metadata)
+        }
+    },
+        750
+    )
 }
