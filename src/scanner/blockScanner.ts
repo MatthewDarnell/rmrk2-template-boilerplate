@@ -150,6 +150,26 @@ const watchBuyOps = async rmrks => {
             continue
         }
 
+        let royaltyPercentage = 0;
+        let royaltyPaid = BigInt(0);
+
+        if(nft.properties) {
+            if(nft.properties.hasOwnProperty('royaltyInfo')) {
+                if(nft.properties.royaltyInfo.hasOwnProperty('value')) {
+                    let royaltyObject = nft.properties.royaltyInfo.value;
+                    if(royaltyObject.hasOwnProperty('receiver') && royaltyObject.hasOwnProperty('royaltyPercentFloat')) {
+                        royaltyPercentage = parseInt(royaltyObject.royaltyPercentFloat);
+                        royaltyPaid = extra_ex
+                            .filter(v => v.value.split(',')[0] === royaltyObject.receiver)
+                            .map(v =>
+                                BigInt(v.value.split(',')[1])
+                            )
+                            .reduce((prev, curr) => prev + curr)
+                    }
+                }
+            }
+        }
+
         let valueSum = extra_ex
             .filter(v => v.value.split(',')[0] === nft.owner)
             .map(v =>
@@ -157,10 +177,17 @@ const watchBuyOps = async rmrks => {
             )
             .reduce((prev, curr) => prev + curr)
 
-        let forSale = BigInt(nft.forsale)
+        valueSum += royaltyPaid
+
+        let forSale = BigInt(nft.forsale) +
+            (
+                BigInt(royaltyPercentage / 100) *
+                BigInt(nft.forsale)
+            );
         if(forSale <= 0 || valueSum < forSale) {
             continue
         }
+
         PendingBuyNfts[nftId] = currentTime
     }
 }
