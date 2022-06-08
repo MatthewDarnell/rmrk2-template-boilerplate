@@ -237,7 +237,7 @@ export const addNft = async (nftMap, from) => {
 }
 export const addNftMetadata = async (nftId, index,  metadataString) => {
     try {
-        const insert = "UPDATE nfts_2 SET metadata=$1, did_fetch_metadata=TRUE " +
+        const insert = "UPDATE nfts_2 SET metadata=$1, did_fetch_metadata=TRUE" +
             " WHERE id=$2;";
         let metadata = ''
         try {
@@ -303,6 +303,11 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
                     ]
                     response = await fetch(`${gateway}/${metadata}`)
                 }
+            }
+
+            if(!response.ok) {
+                //Failed to fetch this metadata
+                return 0;
             }
 
             metadata = await response.text();

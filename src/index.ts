@@ -1,6 +1,7 @@
 require('dotenv').config()
 import { db_get } from "./database";
-import {startBlockScanner, startMetadataFetcher, startPendingBuyCanceller} from "./scanner/blockScanner";
+import {startBlockScanner, startPendingBuyCanceller} from "./scanner/blockScanner";
+import { startMetadataFetcher } from "./services/metadata_fetcher";
 import { startSocketApi } from "./api/socket"
 import { startDbListener } from "./api/listener";
 
