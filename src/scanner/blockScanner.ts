@@ -144,15 +144,21 @@ const watchBuyOps = async rmrks => {
         if(extra_ex.length < 1) {
             continue
         }
-        let { value } = extra_ex[0]
         let nftId = remark[3]
         let nft = await getNft(nftId)
         if(!nft) {
             continue
         }
+
+        let valueSum = extra_ex
+            .filter(v => v.value.split(',')[0] === nft.owner)
+            .map(v =>
+                BigInt(v.value.split(',')[1])
+            )
+            .reduce((prev, curr) => prev + curr)
+
         let forSale = BigInt(nft.forsale)
-        let pricePaid = BigInt(value.split(',')[1])
-        if(forSale <= 0 || pricePaid < forSale) {
+        if(forSale <= 0 || valueSum < forSale) {
             continue
         }
         PendingBuyNfts[nftId] = currentTime
