@@ -58,7 +58,7 @@ const initialSeed = () => {
             if(!dumpUrl) {  //No dump, start syncing from block 0
                 console.log(`No Dump to Fetch, begin syncing from block 0...`)
                 await setLastBlockScanned(0)
-                return { lastBlock:  0, nfts: {}, collections: {}, bases: {} };
+                return res({ lastBlock:  0, nfts: {}, collections: {}, bases: {} });
             }
             console.log(`Fetching Latest RMRK Dump: <${dumpUrl}> (.tar? ${isTarball} , .gz? ${isGzip})...`)
             https.get(dumpUrl, response => {
