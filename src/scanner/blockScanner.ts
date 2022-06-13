@@ -158,7 +158,7 @@ const watchBuyOps = async rmrks => {
                 if(nft.properties.royaltyInfo.hasOwnProperty('value')) {
                     let royaltyObject = nft.properties.royaltyInfo.value;
                     if(royaltyObject.hasOwnProperty('receiver') && royaltyObject.hasOwnProperty('royaltyPercentFloat')) {
-                        royaltyPercentage = parseInt(royaltyObject.royaltyPercentFloat);
+                        royaltyPercentage = Math.floor(parseFloat(royaltyObject.royaltyPercentFloat));
                         royaltyPaid = extra_ex
                             .filter(v => v.value.split(',')[0] === royaltyObject.receiver)
                             .map(v =>
@@ -181,8 +181,8 @@ const watchBuyOps = async rmrks => {
 
         let forSale = BigInt(nft.forsale) +
             (
-                BigInt(royaltyPercentage / 100) *
-                BigInt(nft.forsale)
+                (BigInt(royaltyPercentage) *
+                BigInt(nft.forsale)) / BigInt(100)
             );
         if(forSale <= 0 || valueSum < forSale) {
             continue
