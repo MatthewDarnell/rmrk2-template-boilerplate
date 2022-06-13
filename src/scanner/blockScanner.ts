@@ -164,7 +164,7 @@ const watchBuyOps = async rmrks => {
                             .map(v =>
                                 BigInt(v.value.split(',')[1])
                             )
-                            .reduce((prev, curr) => prev + curr)
+                            .reduce((prev, curr) => prev + curr, BigInt(0))
                     }
                 }
             }
@@ -175,7 +175,7 @@ const watchBuyOps = async rmrks => {
             .map(v =>
                 BigInt(v.value.split(',')[1])
             )
-            .reduce((prev, curr) => prev + curr)
+            .reduce((prev, curr) => prev + curr, BigInt(0))
 
         valueSum += royaltyPaid
 
