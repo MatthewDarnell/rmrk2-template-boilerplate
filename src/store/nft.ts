@@ -138,7 +138,7 @@ export const addNft = async (nftMap, from) => {
             "rootowner, forsale, burned, properties, pending, updatedAtBlock) " +
             "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) " +
             " ON CONFLICT (id) DO UPDATE SET block = excluded.block, collection = excluded.collection, symbol = excluded.symbol, priority = excluded.priority, " +
-            "transferable = excluded.transferable, sn = excluded.sn, metadata = excluded.metadata, owner = excluded.owner, " +
+            "transferable = excluded.transferable, sn = excluded.sn, owner = excluded.owner, " +
             "rootowner = excluded.rootowner, forsale = excluded.forsale, burned = excluded.burned, " +
             "properties = excluded.properties, updatedAtBlock = excluded.updatedAtBlock;";
         let totalNfts = 0

@@ -184,6 +184,7 @@ const watchBuyOps = async rmrks => {
                 (BigInt(royaltyPercentage) *
                 BigInt(nft.forsale)) / BigInt(100)
             );
+        //console.log(`Nft Being Bought: ${nftId} --- Royalty Percentage: ${royaltyPercentage} --- ForSale Price: ${forSale} --- Royalties Paid: ${royaltyPaid} -- Total Paid: ${valueSum}`)
         if(forSale <= 0 || valueSum < forSale) {
             continue
         }
@@ -213,7 +214,9 @@ export const startBlockScanner = async () => {
         // SYNC to DB interactionChanges
 
         const affectedIds = interactionChanges?.length
-            ? interactionChanges.map((c) => Object.values(c)).flat()
+            ? interactionChanges
+                .map((c) => Object.values(c)).flat()
+                .filter(el => el !== undefined)
             : [];
         console.log(affectedIds)
 
