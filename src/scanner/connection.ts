@@ -6,7 +6,7 @@ export const getConnection = async wsUrl => {
         const ws = new WsProvider(wsUrl || 'ws://127.0.0.1:9944');
         return ApiPromise.create({ provider: ws });
     } catch(error) {
-        console.error(`Error Getting WS Connection.(${wsUrl}) - ${error}`)
+        console.error(`Error Getting WS Connection 😡.(${wsUrl}) - ${error}`)
         throw new Error(error)
     }
 }

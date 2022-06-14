@@ -280,7 +280,7 @@ export const startBlockScanner = async () => {
         }
 
         let lastKnownBlock = parseInt(await getLastBlockScanned())
-        console.log(`Scanned Blocks ${lastKnownBlock} ---> ${lastBlock}`)
+        console.log(`Consolidated Blocks ${lastKnownBlock} ---> ${lastBlock} 🤓`)
         //await addInvalid(affectedInvalids, block)
         await addBase(affectedBases)
         await addCollection(affectedCollections)
