@@ -76,8 +76,14 @@ export const getNftMetadataIpfsLink = async limit => {
 }
 
 export const getNumNftMetadataIpfsLink = async () => {
-    const query = "SELECT COUNT(*) FROM nfts_2 WHERE metadata LIKE 'ipfs://%';"
-    await db_get(query, [])
+    try {
+        const query = "SELECT COUNT(*) FROM nfts_2 WHERE metadata LIKE 'ipfs://%';";
+        const num = await db_get(query, "")
+        return num.length > 0 ? num[0].count : 0
+    } catch(error) {
+        console.error(`Error Retrieving Ipfs Metadata Links: ${error}`)
+        return 0
+    }
 }
 
 export const getNftChildrenByNftId = async nftId => {
@@ -187,6 +193,7 @@ export const addNft = async (nftMap, from) => {
             if(nft.hasOwnProperty('changes')) {
                 if(nft.changes.length > 0) {
                     let newChanges = nft.changes.filter(change => change.block >= from)
+                    //console.log(`adding ${nft.changes.length} nft changes for ${id} from blocks: ${from}`)
                     await addNftChanges(nft.id, newChanges, from)
                 }
             }

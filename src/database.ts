@@ -7,7 +7,7 @@ export const getDbString = () => {
         database: process.env.DB,
         password: process.env.PGPASSWORD,
         port: process.env.PGPORT,
-        max: 80
+        max: 35
     }
 }
 const pool = new Pool(getDbString())

@@ -27,10 +27,13 @@ const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
 
     // @ts-ignore
     const { lastBlock, nfts, collections, bases } = file;
-    console.log('Recreating State From Dump, Last Block: ' + lastBlock);
 
-    const dbLastKnownBlock = parseInt(await getLastBlockScanned())
+    let dbLastKnownBlock = parseInt(await getLastBlockScanned())
+    console.log('Recreating State From Dump, Last Block In Dump: ' + lastBlock + '. Last We Remember: ' + dbLastKnownBlock);
+
     if(dbLastKnownBlock < lastBlock) {
+        await setLastBlockScanned(0)
+        dbLastKnownBlock = 0
         console.log('Inserting Latest RMRK Dump Into DB, this could take a while...')
 
         console.log('Importing Bases')
@@ -45,6 +48,7 @@ const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
         await setLastBlockScanned(lastBlock)
         console.log('...Done')
     }
+    await setLastBlockScanned(lastBlock)
     return ({ lastBlock: lastBlock + 1, nfts, collections, bases });
 }
 
@@ -145,6 +149,12 @@ const watchBuyOps = async rmrks => {
             continue
         }
         let nftId = remark[3]
+
+        if(PendingBuyNfts.hasOwnProperty(nftId)) {  //We already know it's being purchased, this tx was just seen again, ignore
+            //console.log(`Ignoring ${nftId} -- already know it's being bought.`)
+            continue;
+        }
+
         let nft = await getNft(nftId)
         if(!nft) {
             continue
@@ -208,16 +218,24 @@ export const startBlockScanner = async () => {
         if(rmrkBlocks.length > 0) {
             lastBlock = Math.max(...rmrkBlocks)
         }
-        const consolidator = new Consolidator(2, adapter, true, true);
+        const consolidator = new Consolidator(2, adapter, false, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
         // SYNC to DB interactionChanges
 
         const affectedIds = interactionChanges?.length
             ? interactionChanges
-                .map((c) => Object.values(c)).flat()
+                .map((c) => (Object.values(c))).flat()
                 .filter(el => el !== undefined)
             : [];
+
+        if(lastBlock > 0) {
+            await setLastBlockScanned(lastBlock)
+        }
+        if(affectedIds.length < 1) {
+            return result;
+        }
+
         console.log(affectedIds)
 
         let updatedNfts = result.nfts
@@ -267,11 +285,14 @@ export const startBlockScanner = async () => {
         await addBase(affectedBases)
         await addCollection(affectedCollections)
         await addNft(affectedNfts, lastKnownBlock)
-        if(lastBlock > 0) {
-            await setLastBlockScanned(lastBlock)
-        }
+
         return result;
     };
+
+    const unfinalisedConsolidateFunction = async (remarks: Remark[]) => {
+        const consolidator = new Consolidator()
+        return consolidator.consolidate(remarks)
+    }
 
     const listener = new RemarkListener({
         polkadotApi: api,
@@ -281,7 +302,11 @@ export const startBlockScanner = async () => {
     });
 
     const subscriber = listener.initialiseObservable();
-    const unfinalizedSubscriber = listener.initialiseObservableUnfinalised();
+    const unfinalizedSubscriber = (new RemarkListener({
+        polkadotApi: api,
+        prefixes: RMRK_PREFIXES,
+        consolidateFunction: unfinalisedConsolidateFunction,
+    })).initialiseObservableUnfinalised();
 
     subscriber.subscribe();
     unfinalizedSubscriber.subscribe(async (rmrks) => await watchBuyOps(rmrks) );
