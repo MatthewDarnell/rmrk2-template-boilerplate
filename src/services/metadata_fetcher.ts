@@ -4,7 +4,7 @@ import {addNftMetadata, getNftMetadataIpfsLink, getNumNftMetadataIpfsLink} from 
 let index = 0
 const fetchMetadataLoop = async () => {
     let num = await getNumNftMetadataIpfsLink()
-    if(index % 100 === 0) {
+    if(index % 20 === 0) {
         console.log(`Number of Unfetched Metadatas Remaining: ${num} ${num==0 ? "🥳" : "⛏"}`)
         index = 1
     }

@@ -12,49 +12,105 @@ import { InMemoryAdapter, StorageProvider } from "../store/adapter";
 import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
 import uniq from 'uniq'
 import { getConnection } from "./connection";
+import JSONStream from 'JSONStream';
 import tar from 'tar-fs'
 const fs = require('fs')
 const https = require('https')
 const zlib = require('zlib')
+const R = require('ramda')
 
-
+class ConsolidatorReturnType {
+    nfts: {}
+    collections: {}
+    bases: {}
+    invalid: []
+    changes: []
+    lastBlocK: number
+}
 
 const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
-    console.log(`Reading File: ${fileName}`);
-    const file = JSON.parse(
-        fs.readFileSync(fileName, 'utf8')
-    );
+    const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : []
+    const readFileStream = fs.createReadStream(fileName);
+    return new Promise(resolve => {
+        const parseStream = JSONStream.parse('$*');
+        const appendFileStream = {
+            nfts: {},
+            collections: {},
+            bases: {},
+            invalid: [],
+            changes: [],
+            lastBlock:0,
+        };
+        readFileStream.pipe(parseStream);
+        parseStream.on('end', async () => {
+            let { lastBlock, bases, collections, nfts } = appendFileStream;
+            let dbLastKnownBlock = parseInt(await getLastBlockScanned())
+            console.log('Recreating State From Dump, Last Block In Dump: ' + lastBlock + '. Last We Remember: ' + dbLastKnownBlock);
 
-    // @ts-ignore
-    const { lastBlock, nfts, collections, bases } = file;
+            if(dbLastKnownBlock < lastBlock) {
+                await setLastBlockScanned(0)
+                dbLastKnownBlock = 0
+                console.log('Inserting Latest RMRK Dump Into DB, this could take a while...')
 
-    let dbLastKnownBlock = parseInt(await getLastBlockScanned())
-    console.log('Recreating State From Dump, Last Block In Dump: ' + lastBlock + '. Last We Remember: ' + dbLastKnownBlock);
+                console.log('Importing Bases')
+                await addBase(bases)
 
-    if(dbLastKnownBlock < lastBlock) {
-        await setLastBlockScanned(0)
-        dbLastKnownBlock = 0
-        console.log('Inserting Latest RMRK Dump Into DB, this could take a while...')
+                console.log('Importing Collections')
+                await addCollection(collections)
 
-        console.log('Importing Bases')
-        await addBase(bases)
+                console.log('Importing Nfts')
+                await addNft(nfts, dbLastKnownBlock)
 
-        console.log('Importing Collections')
-        await addCollection(collections)
+                await setLastBlockScanned(lastBlock)
+                console.log('...Done')
+            }
+            await setLastBlockScanned(lastBlock)
+            resolve({ lastBlock: lastBlock, nfts, collections, bases });
+        });
+        parseStream.on('data', fileChunk => {
+            if (fileChunk) {
+                switch (fileChunk.key) {
+                    case 'collections':
+                    case 'bases':
+                    case 'nfts':
+                        //@ts-ignore
+                        if(fileChunk.key === 'nfts' && collectionsToGet.length > 0) {
+                            const nftIdsWeWant = R.keys(fileChunk.value).filter(key => {
+                                const k = key.split('-')
+                                return process.env.TRACKEDCOLLECTIONS.includes(`${k[1]}-${k[2]}`)
+                            })
+                            for(const o in fileChunk.value) {
+                                if(!nftIdsWeWant.includes(o)) {
+                                    delete fileChunk.value[o]
+                                }
+                            }
+                        }
+                        appendFileStream[fileChunk.key] = R.mergeDeepLeft(
+                            fileChunk.value,
+                            //@ts-ignore
+                            appendFileStream[fileChunk.key],
+                        );
+                        break;
+                    case 'changes':
+                    case 'invalid':
+                        //@ts-ignore
+                        appendFileStream[fileChunk.key] = appendFileStream[fileChunk.key].concat(
+                            fileChunk.value,
+                        );
+                        break;
+                    case 'lastBlock':
+                        appendFileStream[fileChunk.key] = fileChunk.value + 1;
+                }
+            }
+        });
+    });
+};
 
-        console.log('Importing Nfts')
-        await addNft(nfts, dbLastKnownBlock)
-
-        await setLastBlockScanned(lastBlock)
-        console.log('...Done')
-    }
-    await setLastBlockScanned(lastBlock)
-    return ({ lastBlock: lastBlock + 1, nfts, collections, bases });
-}
 
 const initialSeed = () => {
     return new Promise(async res => {
         try {
+
             const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
             const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
             const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
@@ -223,7 +279,7 @@ export const startBlockScanner = async () => {
         const interactionChanges = result.changes || [];
         // SYNC to DB interactionChanges
 
-        const affectedIds = interactionChanges?.length
+        let affectedIds = interactionChanges?.length
             ? interactionChanges
                 .map((c) => (Object.values(c))).flat()
                 .filter(el => el !== undefined)
@@ -236,6 +292,13 @@ export const startBlockScanner = async () => {
             return result;
         }
 
+        const weird = affectedIds.filter(x => x.length > 64)
+        if(weird.length > 0) {
+            console.log(`${weird.length} weird ids...`)
+            // @ts-ignore
+            console.log(weird[0].substring(0, 16))
+        }
+        affectedIds = affectedIds.filter(x => x.length < 64)
         console.log(affectedIds)
 
         let updatedNfts = result.nfts

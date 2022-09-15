@@ -262,6 +262,14 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
             }
             metadataArray = metadataArray.slice(1)  //['ipfs://', 'ba...']
             metadata = metadataArray[0]
+            if(!metadata) {
+                console.error('Null Metadata')
+                return 0
+            }
+            if(metadata.length < 1) {
+                console.error('Null Metadata')
+                return 0
+            }
             if(metadata[0] !== 'Q' && metadata[0] !== 'b') {
                 console.error(`Strange Metadata: ${metadataString} - ${JSON.stringify(metadataArray)} - ${metadata}`)
                 return 0
@@ -324,7 +332,13 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
             ]
 
 
-            await db_query(insert, insertionValues)
+            if(!await db_query(insert, insertionValues)) {
+                //Failed to insert, probable junk data
+                console.log(`${nftId} has bad metadata. Setting fetched.`)
+                const setFetched = "UPDATE nfts_2 SET did_fetch_metadata=TRUE" +
+                    " WHERE id=$1;";
+                await db_query(setFetched, [ nftId ])
+            }
             return 0
 
         } catch(error) {

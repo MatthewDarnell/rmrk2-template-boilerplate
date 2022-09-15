@@ -33,7 +33,7 @@ export const db_query = async (text, params) => {
     try {
         res = await pool.query(text, params)
     } catch (error) {
-        console.error(`Error db query: ${error}  --- ${text} -- ${params}`)
+        console.error(`Error db query: ${error}  --- ${text} `)
     } finally {
     }
     return res
