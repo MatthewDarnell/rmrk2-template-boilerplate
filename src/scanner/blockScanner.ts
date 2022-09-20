@@ -299,7 +299,20 @@ export const startBlockScanner = async () => {
             console.log(weird[0].substring(0, 16))
         }
         affectedIds = affectedIds.filter(x => x.length < 64)
-        console.log(affectedIds)
+
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
+
+        if(collectionsToGet.length > 0) {
+            const myAffectedIds = affectedIds.filter(x => {
+                // @ts-ignore
+                let parts = x.split('-')
+                return collectionsToGet.includes(`${parts[1]}-${parts[2]}`)
+            })
+            console.log(myAffectedIds)
+        } else {
+           console.log(affectedIds)
+        }
+
 
         let updatedNfts = result.nfts
         let updatedBases = result.bases

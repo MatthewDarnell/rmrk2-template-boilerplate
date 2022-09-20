@@ -70,15 +70,31 @@ export const getNft = async nftId => {
 }
 
 export const getNftMetadataIpfsLink = async limit => {
-    const query = `SELECT * FROM nfts_2 WHERE metadata LIKE 'ipfs://%' LIMIT $1;`
-    const nfts = await db_get(query, [limit])
+    const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
+    let query
+    let nfts
+    if(collectionsToGet.length > 0) {
+        query = `SELECT * FROM nfts_2 WHERE metadata LIKE 'ipfs://%' AND collection = ANY($1) LIMIT $2;`
+        nfts = await db_get(query, [[collectionsToGet], limit])
+    } else {
+        query = `SELECT * FROM nfts_2 WHERE metadata LIKE 'ipfs://%' LIMIT $1;`
+        nfts = await db_get(query, [limit])
+    }
     return nfts.length > 0 ? nfts : []
 }
 
 export const getNumNftMetadataIpfsLink = async () => {
     try {
-        const query = "SELECT COUNT(*) FROM nfts_2 WHERE metadata LIKE 'ipfs://%';";
-        const num = await db_get(query, "")
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
+        let query
+        let num
+        if(collectionsToGet.length > 0) {
+            query = `SELECT COUNT(*) FROM nfts_2 WHERE collection = ANY($1) AND metadata LIKE 'ipfs://%';`;
+            num = await db_get(query, [[collectionsToGet]])
+        } else {
+            query = "SELECT COUNT(*) FROM nfts_2 WHERE metadata LIKE 'ipfs://%';";
+            num = await db_get(query, "")
+        }
         return num.length > 0 ? num[0].count : 0
     } catch(error) {
         console.error(`Error Retrieving Ipfs Metadata Links: ${error}`)
