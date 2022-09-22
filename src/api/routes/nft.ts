@@ -7,6 +7,10 @@ import {
 } from "../../store/nft";
 
 import {PendingBuyNfts} from "../../scanner/blockScanner";
+import {getNftsForSaleByCollectionCached} from "../../services/tracked_collection_for_sale_cacher";
+
+
+const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : [];
 
 export const setupNftRoutes = app => {
     app.get('/get_nft_by_id/:id', async (req, res) => {
@@ -42,7 +46,9 @@ export const setupNftRoutes = app => {
     app.get('/get_nfts_for_sale_in_collection/:collection', async (req, res) => {
         try {
             const collection = req.params.collection
-            const nfts = await getNftsByCollectionForSale(collection)
+            const nfts = collectionsToGet.includes(collection) ?
+                getNftsForSaleByCollectionCached(collection) :
+                await getNftsByCollectionForSale(collection);
             res.status(200).send(JSON.stringify(nfts))
         } catch (error) {
             res.status(500).send(`Error getting nft collection for sale by id ${error}`)
