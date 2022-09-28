@@ -1,4 +1,7 @@
-
+/*
+    npx ts-node src/bin/create_tracked_collections_dump.ts <dump_file> <1/0>
+                                                                         ^ 1 for append lastBlock to dump_file name, 0 for no. Defaults to 0
+*/
 require('dotenv').config()
 const fs = require('fs')
 
@@ -17,12 +20,12 @@ import {getLastBlockScanned} from "../store/last_block";
 
 const createDumpObject = async () => {
     try {
-        console.log(`Starting RMRK Dumper. Connecting at <${process.env.PGUSER}@${process.env.DB}>`)
+        console.log(`Starting RMRK Dumper. Connecting at <${process.env.PGUSER}@${process.env.PGHOST}:${process.env.PGPORT} -- ${process.env.DB}>`)
 
         const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
         if(collectionsToGet.length < 1) {
             console.log(`No Tracked Collections to Dump!`)
-            return
+            process.exit(0)
         }
         let client = new Client({
             user: process.env.PGUSER,
@@ -44,7 +47,9 @@ const createDumpObject = async () => {
             if(!coll) continue;
             if(!coll.length) continue;
 
+            
             collections[collection] = coll[0]
+            
             collections[collection]['changes'] = await getCollectionChangesById(collection) || []
 
             const nftsInCollection = await getNftsByCollection(collection)
@@ -68,7 +73,9 @@ const createDumpObject = async () => {
                             console.error(`Failed to Get base ${resource.base}!`)
                             continue
                         }
+                        
                         bases[base] = baseToGet[0]
+                        
                         bases[base]['changes'] = await getBaseChangesById(base) || []
                         let parts = await getBasePartsById(base) || []
 
@@ -79,6 +86,7 @@ const createDumpObject = async () => {
                             }
                         }
 
+                        
                         bases[base]['parts'] = parts
                     }
                 }
@@ -111,12 +119,19 @@ createDumpObject().then(data => {
         console.error("Missing Dump FileName!");
         process.exit(0)
     }
+    let appendLastBlock = false;
+    if(process.argv.length > 3) {
+        appendLastBlock = !!parseInt(process.argv[3])
+    }
     const dumpFile = process.argv[2]
 
-
-    let { nfts, collections, bases, lastBlock } = data
+    const { lastBlock } = data
     console.log(`\nDone Reading DB. Got Last Block <${lastBlock}>`)
-    fs.writeFileSync(dumpFile, JSON.stringify(data))
+    if(appendLastBlock) {
+        fs.writeFileSync(`${dumpFile}-${lastBlock}`, JSON.stringify(data))
+    } else {
+        fs.writeFileSync(dumpFile, JSON.stringify(data))
+    }
     console.log('Done!')
     process.exit(0)
 }).catch(console.error)

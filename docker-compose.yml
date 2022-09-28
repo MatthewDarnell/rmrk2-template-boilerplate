@@ -11,6 +11,16 @@ services:
 #      - "host.docker.internal:host-gateway"
     environment:
       PGHOST: postgres
+  backup_collections:
+    build:
+      context: .
+      dockerfile: Dockerfile-backup
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      PGHOST: postgres
   postgres:
     container_name: postgres_container
     image: postgres
