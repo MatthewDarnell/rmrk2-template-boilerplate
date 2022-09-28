@@ -44,9 +44,9 @@ const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
         readFileStream.pipe(parseStream);
         parseStream.on('end', async () => {
             let { lastBlock, bases, collections, nfts } = appendFileStream;
+
             let dbLastKnownBlock = parseInt(await getLastBlockScanned())
             console.log('Recreating State From Dump, Last Block In Dump: ' + lastBlock + '. Last We Remember: ' + dbLastKnownBlock);
-
             if(dbLastKnownBlock < lastBlock) {
                 await setLastBlockScanned(0)
                 dbLastKnownBlock = 0
@@ -111,9 +111,16 @@ const initialSeed = () => {
     return new Promise(async res => {
         try {
 
+            const fetchConsolidatedFileDirectly = process.env.READLOCALCONSOLIDATEDDUMPFILE ? process.env.READLOCALCONSOLIDATEDDUMPFILE : null
             const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
             const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
             const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
+
+
+            if(fetchConsolidatedFileDirectly) {
+                console.log(`Fetching Consolidated Data Directly From Dump: <${fetchConsolidatedFileDirectly}>`)
+                return res(readConsolidatedFileIntoMemoryAndSaveToDb(fetchConsolidatedFileDirectly));
+            }
 
             if(!dumpUrl) {  //No dump, start syncing from block 0
                 console.log(`No Dump to Fetch, begin syncing from block 0...`)
@@ -206,6 +213,15 @@ const watchBuyOps = async rmrks => {
         }
         let nftId = remark[3]
 
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
+
+        if(collectionsToGet.length > 0) {
+            let parts = nftId.split('-')
+            if(!collectionsToGet.includes(`${parts[1]}-${parts[2]}`)) {
+                continue
+            }
+        }
+
         if(PendingBuyNfts.hasOwnProperty(nftId)) {  //We already know it's being purchased, this tx was just seen again, ignore
             //console.log(`Ignoring ${nftId} -- already know it's being bought.`)
             continue;
@@ -259,6 +275,7 @@ const watchBuyOps = async rmrks => {
     }
 }
 
+
 export const startBlockScanner = async () => {
     // @ts-ignore
     let { lastBlock, nfts, collections, bases} = await initialSeed()
@@ -292,27 +309,27 @@ export const startBlockScanner = async () => {
             return result;
         }
 
-        const weird = affectedIds.filter(x => x.length > 64)
-        if(weird.length > 0) {
-            console.log(`${weird.length} weird ids...`)
-            // @ts-ignore
-            console.log(weird[0].substring(0, 16))
-        }
-        affectedIds = affectedIds.filter(x => x.length < 64)
 
         const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
-
         if(collectionsToGet.length > 0) {
-            const myAffectedIds = affectedIds.filter(x => {
+            affectedIds = affectedIds.filter(x => {
                 // @ts-ignore
                 let parts = x.split('-')
                 return collectionsToGet.includes(`${parts[1]}-${parts[2]}`)
             })
-            console.log(myAffectedIds)
-        } else {
-           console.log(affectedIds)
+
         }
 
+
+        const weird = affectedIds.filter(x => x.length > 64)
+        if(weird.length > 0) {
+            console.log(`${weird.length} weird ids...`)
+            // @ts-ignore
+            console.log(weird[0].substring(0, 64))
+        }
+        affectedIds = affectedIds.filter(x => x.length < 64)
+
+        console.log(affectedIds)
 
         let updatedNfts = result.nfts
         let updatedBases = result.bases

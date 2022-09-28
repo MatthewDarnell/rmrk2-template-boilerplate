@@ -6,6 +6,7 @@
   "scripts": {
     "start-db": "docker-compose up postgres",
     "create-db": "npx ts-node src/bin/createdb.ts",
+    "create-dump": "npx ts-node src/bin/create_tracked_collections_dump.ts",
     "consolidated2db": "npx ts-node src/bin/consolidated_dump_2_db.ts",
     "unconsolidated2db": "npx ts-node src/bin/unconsolidated_dump_2_db.ts",
     "start": "npx ts-node --transpile-only ./src/index.ts",

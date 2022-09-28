@@ -31,3 +31,5 @@ export const getNftsForSaleByCollectionCached = (collectionId: string) => {
   return TrackedCollectionForSaleCache.nftsForSale.hasOwnProperty(collectionId) ?
           TrackedCollectionForSaleCache.nftsForSale[collectionId] : []
 }
+
+export const getAllTrackedNftsForSaleCached = () => TrackedCollectionForSaleCache.nftsForSale

@@ -320,6 +320,7 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
                     response = await fetch(`${gateway}${metadata}`,
                         {
                             method,
+                            // @ts-ignore
                             auth: projectId + ':' + projectSecret,
                             host,
                             headers
