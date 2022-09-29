@@ -128,7 +128,15 @@ const initialSeed = () => {
                 return res({ lastBlock:  0, nfts: {}, collections: {}, bases: {} });
             }
             console.log(`Fetching Latest RMRK Dump: <${dumpUrl}> (.tar? ${isTarball} , .gz? ${isGzip})...`)
-            https.get(dumpUrl, response => {
+
+            let rejectUnauthorized = true;
+            if(process.env.RMRKDUMPREJECTUNAUTHORIZED) {
+                if(process.env.RMRKDUMPREJECTUNAUTHORIZED === 'false') {
+                    rejectUnauthorized = false;
+                }
+            }
+
+            https.get(dumpUrl, { rejectUnauthorized }, response => {
                 const stream = fs.createWriteStream("./rmrk-dump.file")
                 response.pipe(stream)
                 stream.on('open', () => {
