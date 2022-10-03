@@ -151,7 +151,7 @@ createDumpObject().then(data => {
             },
             [dumpFile]
         ).pipe(fs.createWriteStream(`${dumpFile}.tar.gz`))
-        console.log(`Writing ${dumpFile}.tar.gz`)
+        console.log(`Writing ${dumpFile}.tar.gz\nWaiting ${secondsToDelay} seconds.`)
     }
 
     return setInterval(() => {
@@ -179,7 +179,6 @@ createDumpObject().then(data => {
                     console.log(`Writing ${dumpFile}.tar.gz`)
                 }
                 console.log('Done!')
-                process.exit(0)
             }).catch(console.error)
         },
         secondsToDelay * 1000
