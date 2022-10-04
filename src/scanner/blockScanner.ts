@@ -313,6 +313,7 @@ export const startBlockScanner = async () => {
         if(lastBlock > 0) {
             await setLastBlockScanned(lastBlock)
         }
+
         if(affectedIds.length < 1) {
             return result;
         }
@@ -323,9 +324,9 @@ export const startBlockScanner = async () => {
             affectedIds = affectedIds.filter(x => {
                 // @ts-ignore
                 let parts = x.split('-')
-                return collectionsToGet.includes(`${parts[1]}-${parts[2]}`)
+                             //base ID                 //collection ID                                       //nft ID
+                return parts[0]==='base' || collectionsToGet.includes(`${parts[0]}-${parts[1]}`) || collectionsToGet.includes(`${parts[1]}-${parts[2]}`)    //We will pick up ALL bases, and collections/nfts we are tracking
             })
-
         }
 
 
