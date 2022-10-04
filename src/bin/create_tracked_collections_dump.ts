@@ -5,7 +5,7 @@
 require('dotenv').config()
 const fs = require('fs')
 
-import {Client} from 'pg'
+import { close_database } from '../database'
 import {getCollectionById, getCollectionChangesById} from "../store/collection";
 import {
     getNftChangesByNftId,
@@ -27,7 +27,6 @@ import rateLimit from 'express-rate-limit'
 const express = require('express')
 const app = express()
 
-
 const createDumpObject = async () => {
     try {
         console.log(`Starting RMRK Dumper. Connecting at <${process.env.PGUSER}@${process.env.PGHOST}:${process.env.PGPORT} -- ${process.env.DB}>`)
@@ -37,16 +36,6 @@ const createDumpObject = async () => {
             console.log(`No Tracked Collections to Dump!`)
             process.exit(0)
         }
-        let client = new Client({
-            user: process.env.PGUSER,
-            host: process.env.PGHOST,
-            database: process.env.DB,
-            password: process.env.PGPASSWORD,
-            port: parseInt(process.env.PGPORT),
-        })
-        await client.connect()
-
-
 
         const bases = {}
         const collections = {}
@@ -111,6 +100,8 @@ const createDumpObject = async () => {
 
         const lastBlock = (await getLastBlockScanned() || 1) - 1
 
+        await close_database()
+
         return {
             nfts,
             collections,
@@ -118,6 +109,7 @@ const createDumpObject = async () => {
             lastBlock
         }
     } catch(error) {
+        await close_database()
         console.log(`Error Creating Dump File: ${error}`)
     }
 }
