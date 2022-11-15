@@ -1,5 +1,6 @@
 import {
     getNftsOwnedBy,
+    getNftsOwnedByOrRootOwner,
     getNftsByCollection,
     getNft,
     getNftChildrenByNftId,
@@ -73,6 +74,16 @@ export const setupNftRoutes = app => {
         try {
             const address = req.params.address
             const nfts = await getNftsOwnedBy(address)
+            res.status(200).send(JSON.stringify(nfts))
+        } catch (error) {
+            res.status(500).send(`Error getting nfts owned by ${error}`)
+        }
+    })
+
+    app.get('/get_nfts_owned_by_or_root_owned/:address', async (req, res) => {
+        try {
+            const address = req.params.address
+            const nfts = await getNftsOwnedByOrRootOwner(address)
             res.status(200).send(JSON.stringify(nfts))
         } catch (error) {
             res.status(500).send(`Error getting nfts owned by ${error}`)

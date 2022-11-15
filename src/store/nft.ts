@@ -53,6 +53,12 @@ export const getNftsOwnedBy = async address => {
     return (await db_get(query, [address]))
 }
 
+export const getNftsOwnedByOrRootOwner = async address => {
+    const query = `SELECT * FROM nfts_2 WHERE owner=$1 OR rootowner=$1`
+    return (await db_get(query, [address]))
+}
+
+
 export const getNftsOwnedByInCollection = async (address, collectionId) => {
     const query = `SELECT * FROM nfts_2 WHERE owner=$1 AND collection=$2`
     return (await db_get(query, [address, collectionId]))

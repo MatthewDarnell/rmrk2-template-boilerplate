@@ -49,7 +49,14 @@ const createDumpObject = async () => {
 
             collections[collection] = coll[0]
 
-            collections[collection]['changes'] = await getCollectionChangesById(collection) || []
+
+            try {
+                collections[collection]['changes'] = await getCollectionChangesById(collection) || []
+            } catch(error) {
+                console.error(error)
+                console.log(`collections[collection]: ${collections} [${collection}] is undefined`)
+                continue
+            }
 
             const nftsInCollection = await getNftsByCollection(collection)
             if(!nftsInCollection.length) continue;
@@ -75,7 +82,14 @@ const createDumpObject = async () => {
 
                         bases[base] = baseToGet[0]
 
-                        bases[base]['changes'] = await getBaseChangesById(base) || []
+                        try {
+                            bases[base]['changes'] = await getBaseChangesById(base) || []
+                        } catch(error) {
+                            console.error(error)
+                            console.log(`bases[base]: ${bases} [${base}] is undefined`)
+                            continue
+                        }
+
                         let parts = await getBasePartsById(base) || []
 
                         for(let part of parts) {
@@ -91,7 +105,15 @@ const createDumpObject = async () => {
                 }
 
                 nfts[id] = nft
-                nfts[id]['changes'] = changes
+
+                try {
+                    nfts[id]['changes'] = changes
+                } catch(error) {
+                    console.error(error)
+                    console.log(`nfts[id]: ${nfts} [${id}] is undefined`)
+                    continue
+                }
+
                 nfts[id]['resources'] = resources
                 nfts[id]['children'] = children
                 nfts[id]['reactions'] = reactions
