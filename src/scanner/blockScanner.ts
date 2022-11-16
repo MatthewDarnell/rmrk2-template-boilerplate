@@ -14,6 +14,8 @@ import uniq from 'uniq'
 import { getConnection } from "./connection";
 import JSONStream from 'JSONStream';
 import tar from 'tar-fs'
+import {create} from "domain";
+import {createStateObjectFromDatabase} from "../create_state_from_db";
 const fs = require('fs')
 const https = require('https')
 const zlib = require('zlib')
@@ -112,6 +114,7 @@ const initialSeed = () => {
         try {
 
             const fetchConsolidatedFileDirectly = process.env.READLOCALCONSOLIDATEDDUMPFILE ? process.env.READLOCALCONSOLIDATEDDUMPFILE : null
+            const createStateFromExistingDb = process.env.CREATE_STATE_FROM_EXISTING_DB ? process.env.CREATE_STATE_FROM_EXISTING_DB==="true" : false
             const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
             const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
             const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
@@ -120,6 +123,12 @@ const initialSeed = () => {
             if(fetchConsolidatedFileDirectly) {
                 console.log(`Fetching Consolidated Data Directly From Dump: <${fetchConsolidatedFileDirectly}>`)
                 return res(readConsolidatedFileIntoMemoryAndSaveToDb(fetchConsolidatedFileDirectly));
+            }
+
+            if(createStateFromExistingDb) {
+                console.log(`Creating Initial State From Existing Db.`)
+                const initialState = await createStateObjectFromDatabase();
+                return res(initialState)
             }
 
             if(!dumpUrl) {  //No dump, start syncing from block 0
@@ -311,6 +320,7 @@ export const startBlockScanner = async () => {
             : [];
 
         if(lastBlock > 0) {
+            console.log(`Affected Ids: ${affectedIds.length}. Setting Last Block Scanned: ${lastBlock}`)
             await setLastBlockScanned(lastBlock)
         }
 

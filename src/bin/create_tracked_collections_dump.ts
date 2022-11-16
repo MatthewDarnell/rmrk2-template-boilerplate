@@ -5,7 +5,7 @@
 require('dotenv').config()
 const fs = require('fs')
 
-import { close_database } from '../database'
+import {open_database, close_database} from '../database'
 import {getCollectionById, getCollectionChangesById} from "../store/collection";
 import {
     getNftChangesByNftId,
@@ -30,7 +30,7 @@ const app = express()
 const createDumpObject = async () => {
     try {
         console.log(`Starting RMRK Dumper. Connecting at <${process.env.PGUSER}@${process.env.PGHOST}:${process.env.PGPORT} -- ${process.env.DB}>`)
-
+        open_database();
         const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
         if(collectionsToGet.length < 1) {
             console.log(`No Tracked Collections to Dump!`)
@@ -81,12 +81,12 @@ const createDumpObject = async () => {
                         }
 
                         bases[base] = baseToGet[0]
-
                         try {
                             bases[base]['changes'] = await getBaseChangesById(base) || []
                         } catch(error) {
                             console.error(error)
                             console.log(`bases[base]: ${bases} [${base}] is undefined`)
+                            console.log(baseToGet[0])
                             continue
                         }
 
