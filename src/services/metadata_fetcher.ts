@@ -1,4 +1,9 @@
-import {addNftMetadata, getNftMetadataIpfsLink, getNumNftMetadataIpfsLink} from "../store/nft";
+import {
+    addNftMetadata,
+    getNftMetadataIpfsLink,
+    getNumNftMetadataIpfsLink,
+    setActuallyFetchedNftMetadataAsFetched
+} from "../store/nft";
 
 
 let index = 0
@@ -29,5 +34,9 @@ const fetchMetadataLoop = async () => {
 
 export const startMetadataFetcher = async () => {
     console.log('Starting Metadata Fetcher');
+
+    //Imported Dump File contains fetched metadata but our db insert defaults to did_fetch_metadata=FALSE
+    await setActuallyFetchedNftMetadataAsFetched();
+
     return fetchMetadataLoop();
 }

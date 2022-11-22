@@ -75,6 +75,20 @@ export const getNft = async nftId => {
     }
 }
 
+export const setActuallyFetchedNftMetadataAsFetched = async () => {
+    const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
+    let query
+    let nfts
+    if(collectionsToGet.length > 0) {
+        query = `UPDATE nfts_2 SET did_fetch_metadata = TRUE WHERE metadata NOT LIKE 'ipfs://%' AND collection = ANY($1);`;
+        nfts = await db_query(query, [[collectionsToGet]]);
+    } else {
+        query = `UPDATE nfts_2 SET did_fetch_metadata = TRUE WHERE metadata NOT LIKE 'ipfs://%';`;
+        nfts = await db_query(query, []);
+    }
+    return nfts.length > 0 ? nfts : []
+}
+
 export const getNftMetadataIpfsLink = async limit => {
     const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
     let query
