@@ -1,17 +1,9 @@
 import { Server } from 'socket.io'
 import { getServer } from "./server";
 
-export const io = new Server(getServer(),
-    {
-        cors: {
-            origin: process.env.SOCKETCORS || "*"
-        }
-    });
 
-console.log(`Initializing Socket.io Server`)
-
-
-
+let sock;
+export const io = sock;
 const defaultApi =  '["new_block", "new_base_change", "new_base_part", "new_base_theme", ' +
     '"new_base", "new_collection_change", "new_collection", "new_invalid", "new_nft_change", ' +
     '"new_nft_children", "new_nft_reaction", "new_nft_resource", "new_nft"]'
@@ -46,7 +38,17 @@ const verifySubscription = subscription => {
     }
 }
 export const startSocketApi = () => {
-    io.sockets.on('connection', socket => {
+    sock = new Server(getServer(),
+        {
+            cors: {
+                origin: process.env.SOCKETCORS || "*"
+            }
+        });
+
+    console.log(`Initializing Socket.io Server`)
+
+
+    sock.sockets.on('connection', socket => {
         console.log('got connection')
         socket.on('api', () => {
             socket.emit('api', JSON.stringify(process.env.APIEVENTS.split(', ')) || defaultApi)
@@ -60,13 +62,13 @@ export const startSocketApi = () => {
         })
     })
 
-    io.sockets.on('disconnect', () => {
+    sock.sockets.on('disconnect', () => {
         console.log('disconnected')
-        io.sockets.disconnectSockets(true);
+        sock.sockets.disconnectSockets(true);
     })
 }
 
 export const emitSubscriptionEvent = (event, data) => {
     //console.log(`emitting event ${event}`)
-    io.sockets.in(event).emit('event', {event, data})
+    sock.sockets.in(event).emit('event', {event, data})
 }

@@ -7,15 +7,23 @@ const conn = {
     password: process.env.PGPASSWORD || "password",
     port: parseInt(process.env.PGPORT || "3000"),
     database: process.env.DB || "postgres"
-}
+};
+
+const connNoDb = {
+    user: process.env.PGUSER || "rmrk",
+    host: process.env.PGHOST || "localhost",
+    password: process.env.PGPASSWORD || "password",
+    port: parseInt(process.env.PGPORT || "3000")
+};
 
 
 
 
 const createDb = async () => {
     try {
-        let client = new Client(conn)
+        let client = new Client(connNoDb)
         await client.connect()
+        console.log('connecting')
         const res = await client.query(`CREATE DATABASE ${process.env.DB}`);
         console.log(`Creating `)
         console.log(conn)
