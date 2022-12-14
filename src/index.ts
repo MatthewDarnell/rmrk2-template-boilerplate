@@ -5,7 +5,6 @@ import { startMetadataFetcher } from "./services/metadata_fetcher";
 import { startTrackedCollectionCacher } from "./services/tracked_collection_for_sale_cacher";
 import { startHttpServer } from "./api/server"
 import { startSocketApi } from "./api/socket"
-import { startDbListener } from "./api/listener";
 
 console.log(`Starting Rmrk Listener. Connecting at <${process.env.PGUSER}@${process.env.DB}>`)
 
@@ -22,11 +21,9 @@ db_get(`SELECT NOW()`, "").then(async time => {
             const runWebSocketServer = process.env.RUNSOCKETAPI ? process.env.RUNSOCKETAPI === 'true' : false;
             if(runWebSocketServer) {    //Websocket Server runs on Http Server
                 console.log(`Starting Web Socket Server`);
-                startSocketApi();
+                await startSocketApi();
             }
         }
-
-        await startDbListener()
         await startTrackedCollectionCacher()
         await startBlockScanner()
         await startPendingBuyCanceller()

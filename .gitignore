@@ -1,5 +1,9 @@
 .idea
-
+./*.json
+./*.gz
+./*.file
+./*.unzipped
+./*.bak
 # Logs
 logs
 *.log

@@ -13,7 +13,8 @@ const connNoDb = {
     user: process.env.PGUSER || "rmrk",
     host: process.env.PGHOST || "localhost",
     password: process.env.PGPASSWORD || "password",
-    port: parseInt(process.env.PGPORT || "3000")
+    port: parseInt(process.env.PGPORT || "3000"),
+    database: "postgres"
 };
 
 
@@ -21,11 +22,12 @@ const connNoDb = {
 
 const createDb = async () => {
     try {
+        console.log(`Creating Database: \n\tUser: ${connNoDb.user}\n\tHost: ${connNoDb.host}\n\tDatabase: ${process.env.DB}`)
         let client = new Client(connNoDb)
         await client.connect()
-        console.log('connecting')
+        console.log('Connected')
         const res = await client.query(`CREATE DATABASE ${process.env.DB}`);
-        console.log(`Creating `)
+        console.log(`Creating`)
         console.log(conn)
         await client.query(`ALTER USER ${process.env.PGUSER} WITH ENCRYPTED PASSWORD '${process.env.PGPASSWORD}'`)
         await client.query(`GRANT ALL PRIVILEGES ON DATABASE ${process.env.DB} TO ${process.env.PGUSER}`)

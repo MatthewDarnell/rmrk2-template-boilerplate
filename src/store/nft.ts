@@ -313,11 +313,22 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
 
             let response
 
+            const controller = new AbortController()
+            const signal = controller.signal
+            setTimeout(() => {
+                controller.abort()
+            }, 1500)
+
             if(!ipfsOrHttps) {
-                // @ts-ignore
-                response = await fetch(metadataString, {
-                    method: 'GET'
-                });
+                try {
+                    // @ts-ignore
+                    response = await fetch(metadataString, {
+                        signal,
+                        method: 'GET'
+                    });
+                } catch(error) {
+                    //AbortController Signal Fired
+                }
             } else {
                 const usePaidGateway = process.env.IPFSUSEPAID ? process.env.IPFSUSEPAID : false;
 
@@ -336,16 +347,23 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
                     headers.set('Host', host)
                     headers.set('Content-Type', 'application/json')
 
+
                     // @ts-ignore
-                    response = await fetch(`${gateway}${metadata}`,
-                        {
-                            method,
-                            // @ts-ignore
-                            auth: projectId + ':' + projectSecret,
-                            host,
-                            headers
-                        }
-                    );
+                    try {
+                        response = await fetch(`${gateway}${metadata}`,
+                            {
+                                signal,
+                                method,
+                                // @ts-ignore
+                                auth: projectId + ':' + projectSecret,
+                                host,
+                                headers
+                            }
+                        );
+                    } catch(error) {
+                        //AbortController Signal Fired
+                    }
+
                 } else {
                     const gateways = process.env.IPFSGATEWAY.split(',')
                     const gateway = gateways[   //choose a random gateway
@@ -353,11 +371,22 @@ export const addNftMetadata = async (nftId, index,  metadataString) => {
                         Math.random() * gateways.length
                     )
                     ]
-                    response = await fetch(`${gateway}/${metadata}`)
+                    try {
+                        response = await fetch(`${gateway}/${metadata}`, {
+                            signal
+                        })
+                    } catch(error) {
+                        //AbortController Signal Fired
+                    }
                 }
             }
 
+            if(!response) {
+                //Probably Timed Out From AbortController
+                return 0;
+            }
             if(!response.ok) {
+                console.log('failed to get ' + metadataString)
                 //Failed to fetch this metadata
                 return 0;
             }

@@ -66,9 +66,9 @@ export const createStateObjectFromDatabase = async () => {
                         try {
                             bases[base]['changes'] = await getBaseChangesById(base) || []
                         } catch(error) {
-                            console.error(error)
-                            console.log(`bases[base]: ${bases} [${base}] is undefined`)
-                            console.log(baseToGet[0])
+                            //console.error(error)
+                            //console.log(`bases[base]: ${bases} [${base}] is undefined`)
+                            //console.log(baseToGet[0])
                             continue
                         }
 
@@ -87,8 +87,8 @@ export const createStateObjectFromDatabase = async () => {
                 try {
                     nfts[id]['changes'] = changes
                 } catch(error) {
-                    console.error(error)
-                    console.log(`nfts[id]: ${nfts} [${id}] is undefined`)
+                    //console.error(error)
+                    //console.log(`nfts[id]: ${nfts} [${id}] is undefined`)
                     continue
                 }
                 nfts[id]['resources'] = resources

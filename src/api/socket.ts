@@ -1,8 +1,10 @@
 import { Server } from 'socket.io'
 import { getServer } from "./server";
+import { startDbListener } from "./listener";
 
 
 let sock;
+let socketInitialized = false;
 export const io = sock;
 const defaultApi =  '["new_block", "new_base_change", "new_base_part", "new_base_theme", ' +
     '"new_base", "new_collection_change", "new_collection", "new_invalid", "new_nft_change", ' +
@@ -37,14 +39,14 @@ const verifySubscription = subscription => {
         return JSON.parse(defaultApi).filter(x => x === subscription).length > 0
     }
 }
-export const startSocketApi = () => {
+export const startSocketApi = async () => {
     sock = new Server(getServer(),
         {
             cors: {
                 origin: process.env.SOCKETCORS || "*"
             }
         });
-
+    socketInitialized = true;
     console.log(`Initializing Socket.io Server`)
 
 
@@ -66,9 +68,12 @@ export const startSocketApi = () => {
         console.log('disconnected')
         sock.sockets.disconnectSockets(true);
     })
+    await startDbListener();
+    return;
 }
 
 export const emitSubscriptionEvent = (event, data) => {
-    //console.log(`emitting event ${event}`)
-    sock.sockets.in(event).emit('event', {event, data})
+    if(socketInitialized) {
+        sock.sockets.in(event).emit('event', {event, data})
+    }
 }
