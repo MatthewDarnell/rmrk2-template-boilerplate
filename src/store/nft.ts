@@ -191,7 +191,7 @@ export const addNft = async (nftMap, from) => {
 
         if(collectionsToGet.length > 0) {
             nftArray = R.values(nftMap)
-                .filter(nft => process.env.TRACKEDCOLLECTIONS.includes(nft.collection))
+                .filter(nft => collectionsToGet.includes(nft.collection))
         } else {
             nftArray = R.values(nftMap)
         }
