@@ -12,6 +12,7 @@ import { InMemoryAdapter, StorageProvider } from "../store/adapter";
 import { Remark } from "rmrk-tools/dist/tools/consolidator/remark";
 import uniq from 'uniq'
 import { getConnection } from "./connection";
+import { fetchFromIpfs } from "../fetch_from_ipfs";
 import JSONStream from 'JSONStream';
 import tar from 'tar-fs'
 import {create} from "domain";
@@ -118,7 +119,7 @@ const initialSeed = () => {
             const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
             const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
             const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
-
+            const isIpfsLink = dumpUrl.includes('ipfs://')
 
             if(fetchConsolidatedFileDirectly) {
                 console.log(`Fetching Consolidated Data Directly From Dump: <${fetchConsolidatedFileDirectly}>`)
@@ -136,7 +137,7 @@ const initialSeed = () => {
                 await setLastBlockScanned(0)
                 return res({ lastBlock:  0, nfts: {}, collections: {}, bases: {} });
             }
-            console.log(`Fetching Latest RMRK Dump: <${dumpUrl}> (.tar? ${isTarball} , .gz? ${isGzip})...`)
+            console.log(`Fetching Latest RMRK Dump: <${dumpUrl}> (.tar? ${isTarball} , .gz? ${isGzip}, ipfs link? ${isIpfsLink})...`)
 
             let rejectUnauthorized = true;
             if(process.env.RMRKDUMPREJECTUNAUTHORIZED) {
@@ -145,48 +146,58 @@ const initialSeed = () => {
                 }
             }
 
-            https.get(dumpUrl, { rejectUnauthorized }, response => {
-                const stream = fs.createWriteStream("./rmrk-dump.file")
-                response.pipe(stream)
-                stream.on('open', () => {
-                    console.log('Began Downloading')
-                })
-                stream.on("finish", () => {
-                    console.log(`Download Completed! Read ${stream.bytesWritten/1000000} MB!`);
-                    let file = fs.readFileSync('./rmrk-dump.file')
+            if(isIpfsLink) {
+                console.log(`Fetching From IPFS!`)
+                const data = JSON.parse(await fetchFromIpfs(dumpUrl, 60000));
+                const stringified = JSON.stringify(data)
+                console.log(`Download Completed! Read ${Buffer.byteLength(stringified)/1000000} MB!`);
+                fs.writeFileSync("./rmrk-dumpFile", stringified);
+                return res(readConsolidatedFileIntoMemoryAndSaveToDb("./rmrk-dumpFile"));
+            } else {
+                https.get(dumpUrl, { rejectUnauthorized }, response => {
+                    const stream = fs.createWriteStream("./rmrk-dump.file")
+                    response.pipe(stream)
+                    stream.on('open', () => {
+                        console.log('Began Downloading')
+                    })
+                    stream.on("finish", () => {
+                        console.log(`Download Completed! Read ${stream.bytesWritten/1000000} MB!`);
+                        let file = fs.readFileSync('./rmrk-dump.file')
 
-                    if(isGzip) {
-                        console.log('Began Unzipping File')
-                        file = zlib.gunzipSync(file)
-                        fs.writeFileSync('./rmrk-dump.file.unzipped', file)
-                        console.log('Finished Unzipping!')
-                    }
+                        if(isGzip) {
+                            console.log('Began Unzipping File')
+                            file = zlib.gunzipSync(file)
+                            fs.writeFileSync('./rmrk-dump.file.unzipped', file)
+                            console.log('Finished Unzipping!')
+                        }
 
-                    if(isTarball) {
-                        console.log('Began Extracting')
-                        let readStream = fs.createReadStream('./rmrk-dump.file.unzipped')
-                        const extract = tar.extract('.')
-                        readStream.pipe(extract)
-                        let fileName
-                        extract.on('entry', function(header, stream, next) {    //Assuming there is only 1 file in this tarball
-                            fileName = header.name
-                            stream.on('end', function() {
-                                next() // ready for next entry
+                        if(isTarball) {
+                            console.log('Began Extracting')
+                            let readStream = fs.createReadStream('./rmrk-dump.file.unzipped')
+                            const extract = tar.extract('.')
+                            readStream.pipe(extract)
+                            let fileName
+                            extract.on('entry', function(header, stream, next) {    //Assuming there is only 1 file in this tarball
+                                fileName = header.name
+                                stream.on('end', function() {
+                                    next() // ready for next entry
+                                })
                             })
-                        })
-                        extract.on('error', data => {
-                            console.error(data)
-                            process.exit(0)
-                        })
-                        extract.on('finish', async () => {
-                            console.log('Finished Extracting!')
-                            return res(readConsolidatedFileIntoMemoryAndSaveToDb(fileName));
-                        })
-                    } else {    //not a tarball, just read the file
-                        return res(readConsolidatedFileIntoMemoryAndSaveToDb('./rmrk-dump.file.unzipped'));
-                    }
-                });
-            })
+                            extract.on('error', data => {
+                                console.error(data)
+                                process.exit(0)
+                            })
+                            extract.on('finish', async () => {
+                                console.log('Finished Extracting!')
+                                return res(readConsolidatedFileIntoMemoryAndSaveToDb(fileName));
+                            })
+                        } else {    //not a tarball, just read the file
+                            return res(readConsolidatedFileIntoMemoryAndSaveToDb('./rmrk-dump.file.unzipped'));
+                        }
+                    });
+                })
+            }
+
         } catch(error) {
             console.error(`Error Fetching Initial Seed Dump! --- ${error}`)
             process.exit(-1)
