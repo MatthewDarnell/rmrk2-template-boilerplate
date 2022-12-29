@@ -343,6 +343,12 @@ export const startBlockScanner = async () => {
         const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
         if(collectionsToGet.length > 0) {
             affectedIds = affectedIds.filter(x => {
+                if(!x) { //Sometimes got x.split is not a function
+                    return false;
+                }
+                if(typeof x !== "string") {
+                    return false;
+                }
                 // @ts-ignore
                 let parts = x.split('-')
                              //base ID                 //collection ID                                       //nft ID
