@@ -119,7 +119,7 @@ const initialSeed = () => {
             const dumpUrl = process.env.RMRKDUMP ? process.env.RMRKDUMP : null
             const isTarball = process.env.RMRKDUMPISTAR ? process.env.RMRKDUMPISTAR === 'true' : false
             const isGzip = process.env.RMRKDUMPISGZ ? process.env.RMRKDUMPISGZ === 'true' : false
-            const isIpfsLink = dumpUrl.includes('ipfs://')
+            const isIpfsLink = dumpUrl ? dumpUrl.includes('ipfs://') : false
 
             if(fetchConsolidatedFileDirectly) {
                 console.log(`Fetching Consolidated Data Directly From Dump: <${fetchConsolidatedFileDirectly}>`)
