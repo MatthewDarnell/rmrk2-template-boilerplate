@@ -375,6 +375,8 @@ export const startBlockScanner = async () => {
         }
         affectedIds = affectedIds.filter(x => x.length < 128)
 
+        console.log(affectedIds)
+        
         let updatedNfts = result.nfts
         let updatedBases = result.bases
         let updatedColls = result.collections
