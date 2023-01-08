@@ -537,13 +537,25 @@ const addNewResource = async (resource) => {
             let themeId = 'NULL'
 
             if(r.hasOwnProperty('src')) {
-                src = `'${r.src}'`
+                if(typeof r.src === 'string') {
+                    src = r.src;
+                } else {
+                    src = `'${r.src}'`;
+                }
             }
             if(r.hasOwnProperty('slot')) {
-                slot = `'${r.slot}'`
+                if(typeof r.slot === 'string') {
+                    slot = r.slot;
+                } else {
+                    slot = `'${r.slot}'`;
+                }
             }
             if(r.hasOwnProperty('base')) {
-                base = `'${r.base}'`
+                if(typeof r.base === 'string') {
+                    base = r.base;
+                } else {
+                    base = `'${r.base}'`;
+                }
             }
             if(r.hasOwnProperty('theme')) {
                 if(typeof r.theme === 'object') {

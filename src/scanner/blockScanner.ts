@@ -17,6 +17,7 @@ import JSONStream from 'JSONStream';
 import tar from 'tar-fs'
 import {create} from "domain";
 import {createStateObjectFromDatabase} from "../create_state_from_db";
+import {addInvalid} from "../store/invalid";
 const fs = require('fs')
 const https = require('https')
 const zlib = require('zlib')
@@ -335,6 +336,9 @@ export const startBlockScanner = async () => {
             await setLastBlockScanned(lastBlock)
         }
 
+        if(result.invalid.length > 0) {
+            await addInvalid(result.invalid, lastBlock);
+        }
         if(affectedIds.length < 1) {
             return result;
         }
@@ -343,39 +347,42 @@ export const startBlockScanner = async () => {
         const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
         if(collectionsToGet.length > 0) {
             affectedIds = affectedIds.filter(x => {
-                if(!x) { //Sometimes got x.split is not a function
+                try {
+                    if(!x) { //Sometimes got x.split is not a function
+                        return false;
+                    }
+                    if(typeof x !== "string") {
+                        return false;
+                    }
+                    // @ts-ignore
+                    let parts = x.split('-')
+                    //base ID                 //collection ID                                       //nft ID
+                    return parts[0]==='base' || collectionsToGet.includes(`${parts[0]}-${parts[1]}`) || collectionsToGet.includes(`${parts[1]}-${parts[2]}`)    //We will pick up ALL bases, and collections/nfts we are tracking
+                } catch(error) {
+                    console.log(`Weird Error Parsing Affected Ids: ${error}\nX:`)
+                    console.log(x);
                     return false;
                 }
-                if(typeof x !== "string") {
-                    return false;
-                }
-                // @ts-ignore
-                let parts = x.split('-')
-                             //base ID                 //collection ID                                       //nft ID
-                return parts[0]==='base' || collectionsToGet.includes(`${parts[0]}-${parts[1]}`) || collectionsToGet.includes(`${parts[1]}-${parts[2]}`)    //We will pick up ALL bases, and collections/nfts we are tracking
             })
         }
 
 
-        const weird = affectedIds.filter(x => x.length > 64)
+        const weird = affectedIds.filter(x => x.length > 128)
         if(weird.length > 0) {
             console.log(`${weird.length} weird ids...`)
             // @ts-ignore
             console.log(weird[0].substring(0, 64))
         }
-        affectedIds = affectedIds.filter(x => x.length < 64)
-
-        console.log(affectedIds)
+        affectedIds = affectedIds.filter(x => x.length < 128)
 
         let updatedNfts = result.nfts
         let updatedBases = result.bases
         let updatedColls = result.collections
 
+
         let affectedNfts = {},
             affectedCollections = {},
-            affectedBases = {},
-            affectedInvalids = []
-
+            affectedBases = {}
 
         let keysToKeep = Object.keys(updatedNfts)
         keysToKeep = keysToKeep.filter(key => affectedIds.includes(key))
@@ -410,7 +417,6 @@ export const startBlockScanner = async () => {
 
         let lastKnownBlock = parseInt(await getLastBlockScanned())
         console.log(`Consolidated Blocks ${lastKnownBlock} ---> ${lastBlock} 🤓`)
-        //await addInvalid(affectedInvalids, block)
         await addBase(affectedBases)
         await addCollection(affectedCollections)
         await addNft(affectedNfts, lastKnownBlock)
