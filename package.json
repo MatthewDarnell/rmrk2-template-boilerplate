@@ -9,7 +9,7 @@
     "create-dump": "npx ts-node --transpile-only src/bin/create_tracked_collections_dump.ts",
     "consolidated2db": "npx ts-node src/bin/consolidated_dump_2_db.ts",
     "unconsolidated2db": "npx ts-node src/bin/unconsolidated_dump_2_db.ts",
-    "start": "npx ts-node --transpile-only ./src/index.ts",
+    "start": "npx --max_old_space_size=10240 ts-node --transpile-only ./src/index.ts",
     "fetch": "rmrk-tools-fetch",
     "consolidate": "rmrk-tools-consolidate"
   },

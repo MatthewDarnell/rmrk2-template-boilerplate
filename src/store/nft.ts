@@ -19,6 +19,11 @@ export const removeOwner = async (childId, ownerId) => {
     return await db_query(query, [childId, ownerId])
 }
 
+export const setNftOwnerAndRootOwner = async (nftId, rootOwnerId, ownerId) => {
+    const query = `UPDATE nfts_2 SET owner=$1, rootowner=$2 WHERE id=$3;`
+    return await db_query(query, [ownerId, rootOwnerId, nftId])
+}
+
 const isNftMetadataFetched = async nftId => {
     try {
         const query = `SELECT did_fetch_metadata FROM nfts_2 WHERE id=$1;`
@@ -223,7 +228,7 @@ export const addNft = async (nftMap, from) => {
 
             if(nft.hasOwnProperty('children')) {
                 if(nft.children.length > 0) {
-                    await addNftChildren(nft.id, nft.children)
+                    await addNftChildren(nft.id, nft.rootowner, nft.children)
                 }
             }
             if(nft.hasOwnProperty('changes')) {
@@ -460,7 +465,7 @@ const addNftChanges = async (nftId, changes, startBlock) => {
 }
 
 
-const addNftChildren = async (nftId, children) => {
+const addNftChildren = async (nftId, rootOwner, children) => {
     try {
         let insert = "INSERT INTO nft_children_2 (nft_id, id, pending, equipped) VALUES ($1, $2, $3, $4) " +
             " ON CONFLICT (nft_id, id) DO UPDATE SET pending = excluded.pending, equipped = excluded.equipped;";
@@ -482,6 +487,7 @@ const addNftChildren = async (nftId, children) => {
             ]
             totalChildren++
             await db_query(insert, insertionValues)
+            await setNftOwnerAndRootOwner(id, rootOwner, nftId);
         }))
         return totalChildren
     } catch(error) {
