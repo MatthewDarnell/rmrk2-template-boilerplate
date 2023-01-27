@@ -6,6 +6,7 @@ import {
     getNftIdsClaimingChild,
     removeOwner
 } from "../store/nft"
+import { encodeAddress } from "@polkadot/keyring";
 import { addCollection } from "../store/collection"
 import { addBase } from "../store/base"
 import { InMemoryAdapter, StorageProvider } from "../store/adapter";
@@ -225,19 +226,26 @@ export const startPendingBuyCanceller = async () => {
 
 const watchBuyOps = async rmrks => {
     const buyOps = rmrks.filter(rmrk => rmrk.interaction_type === 'BUY')
+    if(buyOps.length > 0) {
+        console.log(`buyOps: See ${buyOps.length} unconfirmed buys`)
+    }
     let currentTime = Date.now()
     for(const rmrk of buyOps) {
         let remark = rmrk.remark
             .split('::')
         if(remark.length < 4) {
+            console.log(`buyOps: remark too short length ${remark}`)
             continue;
         }
         if(!rmrk.extra_ex) {
+            console.log(`buyOps: no extra ex ${rmrk}`)
             continue;
         }
         let extra_ex = rmrk.extra_ex
             .filter(ex => ex.call === 'balances.transfer')
         if(extra_ex.length < 1) {
+            console.log(`buyOps: extra_ex length less than 1 `)
+            console.log(rmrk)
             continue
         }
         let nftId = remark[3]
@@ -247,17 +255,19 @@ const watchBuyOps = async rmrks => {
         if(collectionsToGet.length > 0) {
             let parts = nftId.split('-')
             if(!collectionsToGet.includes(`${parts[1]}-${parts[2]}`)) {
+                console.log('buyOps: not our collection in unconfirmed buys ' + nftId)
                 continue
             }
         }
 
         if(PendingBuyNfts.hasOwnProperty(nftId)) {  //We already know it's being purchased, this tx was just seen again, ignore
-            //console.log(`Ignoring ${nftId} -- already know it's being bought.`)
+            console.log(`buyOps: Ignoring ${nftId} -- already know it's being bought.`)
             continue;
         }
 
         let nft = await getNft(nftId)
         if(!nft) {
+            console.log(`buyOps: unconfirmed buy doesn't know this nft ${nftId}`)
             continue
         }
 
@@ -271,7 +281,7 @@ const watchBuyOps = async rmrks => {
                     if(royaltyObject.hasOwnProperty('receiver') && royaltyObject.hasOwnProperty('royaltyPercentFloat')) {
                         royaltyPercentage = Math.floor(parseFloat(royaltyObject.royaltyPercentFloat));
                         royaltyPaid = extra_ex
-                            .filter(v => v.value.split(',')[0] === royaltyObject.receiver)
+                            .filter(v => encodeAddress(v.value.split(',')[0], 2) === encodeAddress(royaltyObject.receiver, 2))
                             .map(v =>
                                 BigInt(v.value.split(',')[1])
                             )
@@ -280,9 +290,10 @@ const watchBuyOps = async rmrks => {
                 }
             }
         }
-
+console.log('owner ' + nft.owner);
+console.log(extra_ex)
         let valueSum = extra_ex
-            .filter(v => v.value.split(',')[0] === nft.owner)
+            .filter(v => encodeAddress(v.value.split(',')[0], 2) === encodeAddress(nft.owner, 2))
             .map(v =>
                 BigInt(v.value.split(',')[1])
             )
@@ -295,11 +306,14 @@ const watchBuyOps = async rmrks => {
                 (BigInt(royaltyPercentage) *
                 BigInt(nft.forsale)) / BigInt(100)
             );
-        //console.log(`Nft Being Bought: ${nftId} --- Royalty Percentage: ${royaltyPercentage} --- ForSale Price: ${forSale} --- Royalties Paid: ${royaltyPaid} -- Total Paid: ${valueSum}`)
+        console.log(`Nft Being Bought: ${nftId} --- Royalty Percentage: ${royaltyPercentage} --- ForSale Price: ${forSale} --- Royalties Paid: ${royaltyPaid} -- Total Paid: ${valueSum}`)
+        console.log(forSale <= 0)
+        console.log(valueSum < forSale)
         if(forSale <= 0 || valueSum < forSale) {
+            console.log(`buyOps: `)
             continue
         }
-
+        console.log(`buyOps: Marking ${nftId} as being bought`)
         PendingBuyNfts[nftId] = currentTime
     }
 }
