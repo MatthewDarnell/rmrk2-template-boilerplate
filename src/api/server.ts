@@ -43,8 +43,9 @@ const setupHttpApiRoutes = app => {
 
 export const startHttpServer = () => {
     const app = express()
+    app.use(require('express-status-monitor')());
     app.use(cors())
-    app.use(limiter)
+    //app.use(limiter)
     httpServer = createServer(app);
     console.log(`Initializing Express Server on Port ${parseInt(process.env.SERVERPORT) || 3000}`)
     httpServer.listen( parseInt(process.env.SERVERPORT) || 3000)

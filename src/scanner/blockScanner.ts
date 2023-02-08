@@ -328,13 +328,13 @@ export const startBlockScanner = async () => {
     const RMRK_PREFIXES = ['0x726d726b', '0x524d524b'];
 
     const api = await getConnection(process.env.WSURL);
+    const consolidator = new Consolidator(2, adapter, false, true);
 
     const consolidateFunction = async (remarks: Remark[]) => {
         const rmrkBlocks = uniq(remarks.map((r) => r.block));
         if(rmrkBlocks.length > 0) {
             lastBlock = Math.max(...rmrkBlocks)
         }
-        const consolidator = new Consolidator(2, adapter, false, true);
         const result = await consolidator.consolidate(remarks);
         const interactionChanges = result.changes || [];
         // SYNC to DB interactionChanges
