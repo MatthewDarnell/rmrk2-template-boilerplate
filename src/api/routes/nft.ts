@@ -13,8 +13,7 @@ import {
     getNftsForSaleByCollectionCached
 } from "../../services/tracked_collection_for_sale_cacher";
 
-
-const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : [];
+const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
 
 export const setupNftRoutes = app => {
     app.get('/get_nft_by_id/:id', async (req, res) => {

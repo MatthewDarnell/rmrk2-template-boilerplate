@@ -34,7 +34,7 @@ class ConsolidatorReturnType {
 }
 
 const readConsolidatedFileIntoMemoryAndSaveToDb = async fileName => {
-    const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : []
+    const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
     const readFileStream = fs.createReadStream(fileName);
     return new Promise(resolve => {
         const parseStream = JSONStream.parse('$*');
@@ -328,14 +328,20 @@ export const startBlockScanner = async () => {
     const RMRK_PREFIXES = ['0x726d726b', '0x524d524b'];
 
     const api = await getConnection(process.env.WSURL);
-    const consolidator = new Consolidator(2, adapter, false, true);
+
+
+    const getConsolidatedRemarks = async (adapter, remarks) => {
+        const consolidator = new Consolidator(2, adapter, false, true);
+        return await consolidator.consolidate(remarks);
+    }
+
 
     const consolidateFunction = async (remarks: Remark[]) => {
         const rmrkBlocks = uniq(remarks.map((r) => r.block));
         if(rmrkBlocks.length > 0) {
             lastBlock = Math.max(...rmrkBlocks)
         }
-        const result = await consolidator.consolidate(remarks);
+        const result = await getConsolidatedRemarks(adapter, remarks);
         const interactionChanges = result.changes || [];
         // SYNC to DB interactionChanges
 
@@ -346,7 +352,7 @@ export const startBlockScanner = async () => {
             : [];
 
         if(lastBlock > 0) {
-            console.log(`Affected Ids: ${affectedIds.length}. Setting Last Block Scanned: ${lastBlock}`)
+            console.log(`Consolidated. Affected Ids: ${affectedIds.length}. Setting Last Block Scanned: ${lastBlock}`)
             await setLastBlockScanned(lastBlock)
         }
 

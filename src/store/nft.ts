@@ -192,7 +192,7 @@ export const addNft = async (nftMap, from) => {
 
         let nftArray
 
-        const collectionsToGet = process.env.TRACKEDCOLLECTIONS ? process.env.TRACKEDCOLLECTIONS.split(', ') : []
+        const collectionsToGet = process.env.TRACKEDCOLLECTIONS? Array.from(process.env.TRACKEDCOLLECTIONS).join('').split(', ') : []
 
         if(collectionsToGet.length > 0) {
             nftArray = R.values(nftMap)

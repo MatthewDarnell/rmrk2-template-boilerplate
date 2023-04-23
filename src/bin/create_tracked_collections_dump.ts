@@ -233,6 +233,16 @@ const writeFile = data => {
                     [oF]
                 ).pipe(fs.createWriteStream(`${oF}.tar.gz`))
 
+
+                fs.writeFileSync(oF, JSON.stringify(data))
+                tar.c( // or tar.create
+                    {
+                        gzip: true
+                    },
+                    [oF]
+                ).pipe(fs.createWriteStream(`${folderOfDumpFiles}/latest-${fileName}.tar.gz`))
+
+
             } else {
                 fs.writeFileSync(oF, JSON.stringify(data))
                 tar.c( // or tar.create
@@ -287,19 +297,33 @@ const httpServer = createServer(app);
 
 console.log(`Initializing Express Server on Port 3030`)
 
-app.get('/', (req, res) => {
+app.get('/:fileName', (req, res) => {
     try {
         let file = dumpFile
         if(appendLastBlock) {
             file = `${lastKnownBlock}-${dumpFile}`
         }
-        return res.sendFile(`${file}.tar.gz`, (error) => {
-            if(error) {
-                console.error(`Failed To Send: ${error}`)
-            } else {
-                console.log('sent!')
-            }
-        })
+        console.log('File: ' + file)
+        console.log(fs.readdirSync('/mnt/backupdb'))
+        if(req.params.hasOwnProperty('fileName')) {
+            const fileName = req.params.fileName;
+            console.log(`Sending Specified File Name: ${fileName}`)
+            return res.sendFile(`/mnt/backupdb/${fileName}`, (error) => {
+                if(error) {
+                    console.error(`Failed To Send: ${error}`)
+                } else {
+                    console.log('sent!')
+                }
+            })
+        } else {
+            return res.sendFile(`${file}.tar.gz`, (error) => {
+                if(error) {
+                    console.error(`Failed To Send: ${error}`)
+                } else {
+                    console.log('sent!')
+                }
+            })
+        }
     } catch(error) {
         console.error(`Error: ${error}`)
     }
