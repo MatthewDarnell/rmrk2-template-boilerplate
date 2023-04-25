@@ -13,6 +13,34 @@ export const getDbString = () => {
 let pool
 let isDbOpen = false;
 
+export const db_transaction = async queryArrayWithParams => {
+    let client
+    try {
+        if(!isDbOpen) {
+            open_database()
+        }
+        client = await pool.connect()
+        await client.query('BEGIN')
+        for(const queryObj of queryArrayWithParams) {
+            if(!queryObj.hasOwnProperty('text') || !queryObj.hasOwnProperty('params')) {
+                console.error('Malformed Transaction Query Array')
+                console.log(queryArrayWithParams)
+                return await client.query('ROLLBACK')
+            }
+            await client.query(queryObj.text, queryObj.params)
+        }
+        await client.query('COMMIT')
+    } catch (error) {
+        console.error(`Error db query: ${error}`)
+        console.log(queryArrayWithParams)
+        await client.query('ROLLBACK')
+    } finally {
+        if(client) {
+            client.release()
+        }
+    }
+}
+
 export const db_query = async (text, params) => {
     let res
     try {

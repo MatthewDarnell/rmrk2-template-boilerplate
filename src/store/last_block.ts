@@ -1,5 +1,5 @@
 
-import {db_get, db_query} from "../database";
+import {db_get, db_query, db_transaction} from "../database";
 
 export const getLastBlockScanned = async () => {
     try {
@@ -16,8 +16,8 @@ export const getLastBlockScanned = async () => {
 }
 
 export const setLastBlockScanned = async (block) => {
-    const query = `INSERT INTO lastblock_2 (lastblock) VALUES ($1);`;
-    //should make this a transaction
-    await db_query('TRUNCATE lastblock_2;', "")
-    await db_query(query, [parseInt(block)])
+    await db_transaction([
+        {text: "TRUNCATE lastblock_2;", params: ""},
+        {text: "INSERT INTO lastblock_2 (lastblock) VALUES ($1);", params: [parseInt(block)]}
+    ])
 }
